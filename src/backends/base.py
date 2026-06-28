@@ -95,6 +95,18 @@ def _polars_dtype_to_sql(dtype: pl.DataType) -> str:
     return "TEXT"
 
 
+def _normalize_sql_type(sql_type: str) -> str:
+    """Normalize backend-specific SQL type names for compatibility checks."""
+    base = sql_type.upper().split("(")[0].strip()
+    if base in {"TEXT", "VARCHAR", "STRING", "BLOB"}:
+        return "TEXT"
+    if base in {"INTEGER", "INT", "BIGINT", "HUGEINT", "BOOLEAN"}:
+        return "INTEGER"
+    if base in {"REAL", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"}:
+        return "REAL"
+    return base
+
+
 @runtime_checkable
 class DataBackend(Protocol):
     """Storage-agnostic *read* interface used by the server tools.
@@ -207,6 +219,45 @@ class DataSink(ABC):
                 self.insert(table_name, df.to_dicts())
         return created
 
+    def _validate_append_schema(
+        self,
+        table_name: str,
+        df: pl.DataFrame,
+        duplicate_check_columns: list[str] | None = None,
+    ) -> list[str] | None:
+        """Validate *df* against *table_name*; return normalized dup-check columns."""
+        existing_schema = self.get_schema(table_name)
+        existing_columns = {
+            col.name.lower(): _normalize_sql_type(col.type)
+            for col in existing_schema.columns
+        }
+        df_schema = {
+            col.lower(): _polars_dtype_to_sql(dtype)
+            for col, dtype in df.schema.items()
+        }
+
+        for col_name, col_type in df_schema.items():
+            if col_name not in existing_columns:
+                raise QueryError(
+                    f"Column '{col_name}' in DataFrame does not exist in table '{table_name}'."
+                )
+            if col_type != existing_columns[col_name]:
+                raise QueryError(
+                    f"Column '{col_name}' has type '{col_type}' in DataFrame but "
+                    f"'{existing_columns[col_name]}' in table '{table_name}'."
+                )
+
+        if duplicate_check_columns is None:
+            return None
+
+        dup_check_cols_lower = [col.lower() for col in duplicate_check_columns]
+        for col in dup_check_cols_lower:
+            if col not in df_schema:
+                raise QueryError(
+                    f"Duplicate check column '{col}' does not exist in DataFrame."
+                )
+        return dup_check_cols_lower
+
     def append_to_table(
         self,
         table_name: str,
@@ -235,33 +286,13 @@ class DataSink(ABC):
         if len(df) == 0:
             return 0
 
-        existing_schema = self.get_schema(table_name)
-        existing_columns = {col.name.lower(): col.type for col in existing_schema.columns}
-
-        df_schema = {col.lower(): _polars_dtype_to_sql(dtype) for col, dtype in df.schema.items()}
-
-        for col_name, col_type in df_schema.items():
-            if col_name not in existing_columns:
-                raise QueryError(
-                    f"Column '{col_name}' in DataFrame does not exist in table '{table_name}'."
-                )
-            if col_type != existing_columns[col_name]:
-                raise QueryError(
-                    f"Column '{col_name}' has type '{col_type}' in DataFrame but "
-                    f"'{existing_columns[col_name]}' in table '{table_name}'."
-                )
+        dup_check_cols_lower = self._validate_append_schema(
+            table_name, df, duplicate_check_columns
+        )
 
         rows_to_insert = df.to_dicts()
 
-        if duplicate_check_columns is not None:
-            dup_check_cols_lower = [col.lower() for col in duplicate_check_columns]
-
-            for col in dup_check_cols_lower:
-                if col not in df_schema:
-                    raise QueryError(
-                        f"Duplicate check column '{col}' does not exist in DataFrame."
-                    )
-
+        if dup_check_cols_lower is not None:
             where_conditions = [
                 {col: row[col] for col in dup_check_cols_lower}
                 for row in rows_to_insert

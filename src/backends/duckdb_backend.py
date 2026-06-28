@@ -22,6 +22,7 @@ from .base import (
     DataSink,
     QueryError,
     TableSchema,
+    _polars_dtype_to_sql,
     is_read_only_sql,
 )
 
@@ -264,6 +265,88 @@ class DuckDBSource(DataSink):
         column_names = [desc[0] for desc in cursor.description]
         return [dict(zip(column_names, row)) for row in rows]
 
+    def _insert_dataframe(self, table_name: str, df: pl.DataFrame) -> None:
+        """Bulk-insert a Polars frame using DuckDB's native columnar path."""
+        conn = self._conn()
+        conn.register("_bulk_insert_src", df)
+        try:
+            conn.execute(
+                f"INSERT INTO {table_name} BY NAME SELECT * FROM _bulk_insert_src"
+            )
+        finally:
+            conn.unregister("_bulk_insert_src")
+
+    def _insert_dataframe_skip_duplicates(
+        self,
+        table_name: str,
+        df: pl.DataFrame,
+        dup_check_cols_lower: list[str],
+    ) -> int:
+        """Bulk-insert rows whose dup-check key is not already in the table."""
+        conn = self._conn()
+        table_col_map = {
+            col.name.lower(): col.name for col in self.get_schema(table_name).columns
+        }
+        df_col_map = {col.lower(): col for col in df.columns}
+        conditions = " AND ".join(
+            f'existing."{table_col_map[col]}" = new."{df_col_map[col]}"'
+            for col in dup_check_cols_lower
+        )
+        before = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        conn.register("_append_src", df)
+        try:
+            conn.execute(
+                f"INSERT INTO {table_name} BY NAME "
+                f"SELECT new.* FROM _append_src AS new "
+                f"WHERE NOT EXISTS ("
+                f"SELECT 1 FROM {table_name} AS existing WHERE {conditions}"
+                f")"
+            )
+        finally:
+            conn.unregister("_append_src")
+        after = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
+        return after - before
+
+    def append_to_table(
+        self,
+        table_name: str,
+        df: pl.DataFrame,
+        duplicate_check_columns: list[str] | None = None,
+    ) -> int:
+        """Append via columnar bulk insert, with SQL-based duplicate filtering."""
+        self._require_writable()
+        if len(df) == 0:
+            return 0
+
+        dup_check_cols_lower = self._validate_append_schema(
+            table_name, df, duplicate_check_columns
+        )
+        if dup_check_cols_lower is None:
+            self._insert_dataframe(table_name, df)
+            return df.height
+        return self._insert_dataframe_skip_duplicates(
+            table_name, df, dup_check_cols_lower
+        )
+
+    def create_table_from_polars(
+        self,
+        table_name: str,
+        df: pl.DataFrame,
+        overwrite_if_exists: bool = False,
+        num_splits: int = 20,
+    ) -> bool:
+        """Create a table and bulk-load rows without dict round-trips."""
+        schema = {col: _polars_dtype_to_sql(dtype) for col, dtype in df.schema.items()}
+        created = self.create_table(table_name, schema, overwrite_if_exists)
+        if created and df.height > 0:
+            if df.height > 1_000_000:
+                step = max(df.height // num_splits, 1)
+                for start in range(0, df.height, step):
+                    self._insert_dataframe(table_name, df.slice(start, step))
+            else:
+                self._insert_dataframe(table_name, df)
+        return created
+
     def insert(
         self,
         table_name: str,
@@ -274,12 +357,19 @@ class DuckDBSource(DataSink):
             data = [data]
         if not data:
             return 0
-        columns_sql = ", ".join(data[0].keys())
-        placeholders = ", ".join("?" for _ in data[0])
-        query = f"INSERT INTO {table_name} ({columns_sql}) VALUES ({placeholders})"
-        conn = self._conn()
-        for row in data:
-            conn.execute(query, list(row.values()))
+
+        if len(data) == 1:
+            row = data[0]
+            columns_sql = ", ".join(row.keys())
+            placeholders = ", ".join("?" for _ in row)
+            query = (
+                f"INSERT INTO {table_name} ({columns_sql}) VALUES ({placeholders})"
+            )
+            self._conn().execute(query, list(row.values()))
+            return 1
+
+        columns = list(data[0].keys())
+        self._insert_dataframe(table_name, pl.from_dicts(data))
         return len(data)
 
     def update(
