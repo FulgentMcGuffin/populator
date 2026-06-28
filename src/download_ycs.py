@@ -150,8 +150,8 @@ if __name__ == "__main__":
     # parser.add_argument("--date", type=str, required=True)
     # args = parser.parse_args()
     # main(date="2026-05-22")
-    # last_friday = last_n_fridays(date.today(), 0)
-    last_friday = date(2026, 6, 24)
+    last_friday = last_n_fridays(date.today(), 0)
+    # last_friday = date(2026, 6, 24)
     LOCALDATA_BUCKET_NAME = os.getenv("LOCALDATA_BUCKET_NAME", None)
     if LOCALDATA_BUCKET_NAME is None:
         raise ValueError("LOCALDATA_BUCKET_NAME environment variable is not set")
