@@ -381,7 +381,7 @@ def populate_sqlite_from_files(db_path: str | None = None):
         else:
             print(f"Skipping Zero Rates: directory {zero_rates_dir} does not exist")
         # Load par rates to SQLite
-        par_rates_dir = f"{LOCALDATA_PATH}/par"        if zero_rates_dir is None:
+        par_rates_dir = f"{LOCALDATA_PATH}/par"
         if os.path.exists(par_rates_dir):
             db.create_table_from_polars(
                 "par_rates", load_parquets_from_dir(par_rates_dir), True
