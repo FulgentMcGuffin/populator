@@ -1,0 +1,18 @@
+[project]
+name = "populator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "boto3>=1.43.36",
+    "dotenv>=0.9.9",
+    "duckdb>=1.5.4",
+    "fastparquet>=2026.5.0",
+    "numpy>=2.5.0",
+    "pillow>=12.2.0",
+    "plotnine>=0.15.7",
+    "polars>=1.42.0",
+    "pyarrow>=24.0.0",
+    "tqdm>=4.68.3",
+]
