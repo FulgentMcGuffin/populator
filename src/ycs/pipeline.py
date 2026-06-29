@@ -21,7 +21,12 @@ from .config import (
 from .correlations import get_corr_matrix
 from .data_loading import populate_from_files
 
-__all__ = ["load_rate_tables", "run_populate_pipeline", "save_window_corr"]
+__all__ = [
+    "load_rate_tables",
+    "run_create_corr_files",
+    "run_populate_pipeline",
+    "save_window_corr",
+]
 
 
 def load_rate_tables(source_class: type[Any]) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
@@ -66,8 +71,9 @@ def _load_or_create_corr_matrices(
     tenors: list[str],
     use_dcor: bool,
     run_async: bool,
+    overwrite_existing: bool = False,
 ) -> dict | None:
-    if os.path.exists(melted_file):
+    if os.path.exists(melted_file) and not overwrite_existing:
         print(f"Loading existing {melted_file}")
         if populate_db_corr_from_files:
             with open(melted_file, "rb") as handle:
@@ -126,6 +132,7 @@ def build_window_corr_frames(
     start_month: int,
     start_day: int,
     run_async: bool,
+    overwrite_existing: bool = False,
 ) -> list[pl.DataFrame]:
     """Compute or load correlation pickles and assemble rows for window_corr."""
     df_pl_all: list[pl.DataFrame] = []
@@ -156,6 +163,7 @@ def build_window_corr_frames(
                 tenors=tenors,
                 use_dcor=False,
                 run_async=run_async,
+                overwrite_existing=overwrite_existing,
             )
             _append_corr_frames(
                 df_pl_all,
@@ -183,6 +191,7 @@ def build_window_corr_frames(
                 tenors=tenors,
                 use_dcor=True,
                 run_async=run_async,
+                overwrite_existing=overwrite_existing,
             )
             _append_corr_frames(
                 df_pl_all,
@@ -213,6 +222,35 @@ def save_window_corr(
         )
     print(
         f"Saved {df_pl_all.shape[0]} rows to {backend_label} in table {WINDOW_CORR_TABLE}"
+    )
+
+
+def run_create_corr_files(
+    source_class: type[Any],
+    *,
+    starting_year: int = DEFAULT_START_YEAR,
+    starting_month: int = DEFAULT_START_MONTH,
+    starting_day: int = DEFAULT_START_DAY,
+    run_async: bool = True,
+    overwrite_existing: bool = True,
+) -> None:
+    """Compute melted correlation pickles from rate tables in the database."""
+    zero_rates, par_rates, _ = load_rate_tables(source_class)
+    corr_dir = (
+        f"{os.getenv('DERIVED_LOCALDATA_PATH')}/{os.getenv('DERIVED_CORR_FOLDER')}"
+    )
+    build_window_corr_frames(
+        rate_frames=[(zero_rates, "zero_rates"), (par_rates, "par_rates")],
+        corr_dir=corr_dir,
+        populate_db_corr_from_files=False,
+        create_corr_files=True,
+        tenors=DEFAULT_TENORS,
+        correlation_window_sizes=DEFAULT_CORRELATION_WINDOW_SIZES,
+        start_year=starting_year,
+        start_month=starting_month,
+        start_day=starting_day,
+        run_async=run_async,
+        overwrite_existing=overwrite_existing,
     )
 
 
