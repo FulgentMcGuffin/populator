@@ -10,11 +10,13 @@ dependencies = [
     "dotenv>=0.9.9",
     "duckdb>=1.5.4",
     "fastparquet>=2026.5.0",
+    "kagglehub[pandas-datasets]>=1.0.2",
     "numpy>=2.0,<2.5",
     "pandas>=3.0.3",
     "pillow>=12.2.0",
     "plotnine>=0.15.7",
     "polars>=1.42.0",
     "pyarrow>=24.0.0",
+    "sf-hamilton>=1.90.0",
     "tqdm>=4.68.3",
 ]
