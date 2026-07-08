@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import polars as pl
 
-SUPPORTED_EXTENSIONS = frozenset({".parquet", ".csv", ".feather", ".ipc"})
+from .transforms import FileTransform, IngestionTransform, compose_transforms
 
-FileTransform = Callable[[str, pl.DataFrame], pl.DataFrame]
+SUPPORTED_EXTENSIONS = frozenset({".parquet", ".csv", ".feather", ".ipc"})
 
 _READERS: dict[str, Callable[[str], pl.DataFrame]] = {
     ".parquet": pl.read_parquet,
@@ -65,6 +65,7 @@ def load_files_from_dir(
     directory: str | Path,
     *,
     extensions: frozenset[str] | set[str] | None = None,
+    transforms: Sequence[IngestionTransform] | None = None,
     transform: FileTransform | None = None,
 ) -> pl.DataFrame:
     """Read all matching files in *directory* concurrently and concatenate them."""
@@ -74,5 +75,6 @@ def load_files_from_dir(
         raise FileNotFoundError(
             f"No supported files ({supported}) found in {directory}"
         )
-    frames = asyncio.run(_load_all_files(paths, transform))
+    file_transform = compose_transforms(transforms, file_transform=transform)
+    frames = asyncio.run(_load_all_files(paths, file_transform))
     return pl.concat(frames)

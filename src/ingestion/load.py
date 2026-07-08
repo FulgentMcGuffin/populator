@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import polars as pl
 
-from .files import SUPPORTED_EXTENSIONS, FileTransform, load_files_from_dir
+from .files import SUPPORTED_EXTENSIONS, load_files_from_dir
+from .transforms import FileTransform, IngestionTransform
 
 __all__ = [
     "load_directories_into_tables",
@@ -30,11 +31,17 @@ def load_directory_into_table(
     directory: str | Path,
     *,
     extensions: frozenset[str] | set[str] | None = None,
+    transforms: Sequence[IngestionTransform] | None = None,
     transform: FileTransform | None = None,
     overwrite_if_exists: bool = True,
 ) -> bool:
     """Load all matching files from *directory* into a single *table_name*."""
-    df = load_files_from_dir(directory, extensions=extensions, transform=transform)
+    df = load_files_from_dir(
+        directory,
+        extensions=extensions,
+        transforms=transforms,
+        transform=transform,
+    )
     return db.create_table_from_polars(table_name, df, overwrite_if_exists)
 
 
@@ -44,6 +51,7 @@ def load_directories_into_tables(
     *,
     db_path: str | Path | None = None,
     extensions: frozenset[str] | set[str] | None = None,
+    transforms: Sequence[IngestionTransform] | None = None,
     transform: FileTransform | None = None,
     overwrite_if_exists: bool = True,
     skip_missing: bool = True,
@@ -70,6 +78,7 @@ def load_directories_into_tables(
                 table_name,
                 directory,
                 extensions=extensions,
+                transforms=transforms,
                 transform=transform,
                 overwrite_if_exists=overwrite_if_exists,
             )

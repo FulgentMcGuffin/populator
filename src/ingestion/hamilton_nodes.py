@@ -8,8 +8,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .files import FileTransform, SUPPORTED_EXTENSIONS
+from collections.abc import Sequence
+
+from .files import SUPPORTED_EXTENSIONS, FileTransform, load_files_from_dir
 from .load import load_directories_into_tables
+from .transforms import IngestionTransform
 
 __all__ = [
     "directories_loaded",
@@ -38,7 +41,11 @@ def extensions() -> frozenset[str] | None:
 
 
 def file_transform() -> FileTransform | None:
-    """Optional per-file transform applied before concatenation."""
+    """Optional legacy per-file transform applied before concatenation."""
+
+
+def transforms() -> list[IngestionTransform] | None:
+    """Optional composable transforms applied to each file before concatenation."""
 
 
 def overwrite_if_exists() -> bool:
@@ -55,6 +62,7 @@ def directories_loaded(
     table_directories: dict[str, str],
     db_path: str | None,
     extensions: frozenset[str] | None,
+    transforms: list[IngestionTransform] | None,
     file_transform: FileTransform | None,
     overwrite_if_exists: bool,
     skip_missing: bool,
@@ -68,6 +76,7 @@ def directories_loaded(
         table_directories,
         db_path=db_path,
         extensions=extensions,
+        transforms=transforms,
         transform=file_transform,
         overwrite_if_exists=overwrite_if_exists,
         skip_missing=skip_missing,

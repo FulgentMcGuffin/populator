@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from hamilton import driver
 
 from . import hamilton_nodes
-from .files import FileTransform, SUPPORTED_EXTENSIONS
+from .files import SUPPORTED_EXTENSIONS
+from .transforms import FileTransform, IngestionTransform
 
 __all__ = [
     "build_driver",
@@ -32,6 +34,7 @@ def ingestion_overrides(
     table_directories: dict[str, str] | None = None,
     db_path: str | None = None,
     extensions: frozenset[str] | set[str] | None = None,
+    transforms: Sequence[IngestionTransform] | None = None,
     file_transform: FileTransform | None = None,
     overwrite_if_exists: bool = True,
     skip_missing: bool = True,
@@ -45,6 +48,7 @@ def ingestion_overrides(
         "extensions": (
             frozenset(extensions) if extensions is not None else SUPPORTED_EXTENSIONS
         ),
+        "transforms": list(transforms) if transforms is not None else None,
         "file_transform": file_transform,
         "overwrite_if_exists": overwrite_if_exists,
         "skip_missing": skip_missing,
@@ -57,6 +61,7 @@ def run_load_directories_into_tables(
     *,
     db_path: str | None = None,
     extensions: frozenset[str] | set[str] | None = None,
+    transforms: Sequence[IngestionTransform] | None = None,
     file_transform: FileTransform | None = None,
     overwrite_if_exists: bool = True,
     skip_missing: bool = True,
@@ -72,6 +77,7 @@ def run_load_directories_into_tables(
             table_directories=table_directories,
             db_path=db_path,
             extensions=extensions,
+            transforms=transforms,
             file_transform=file_transform,
             overwrite_if_exists=overwrite_if_exists,
             skip_missing=skip_missing,
