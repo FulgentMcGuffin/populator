@@ -1,87 +1,138 @@
 # Populator
 
-Tools for downloading yield-curve studio data from S3 and loading it into local SQLite or DuckDB databases.
+Tools for loading local files into SQLite or DuckDB, with optional sourcing (S3, Kaggle) and derived analytics for yield-curve studio (YCS) data.
 
 This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run all commands from the repository root.
 
-## Configuration
+```bash
+uv sync                  # install runtime dependencies
+uv sync --extra dev      # include pytest for tests
+```
 
-Copy and edit `.env` and `config.py` and set up your own `.secrets` (if required) before running the scripts.
+## Project layout
 
-| Variable | Used by | Description |
-|---|---|---|
-| `LOCALDATA_PATH` | download, populate | Local root directory for parquet files |
-| `LOCALDATA_BUCKET_NAME` | download | S3 bucket name |
-| `LOCALSOURCE_NAME` | download | S3 prefix root (e.g. `augur`) |
-| `SQLITEDB_PATH` | populate SQLite | Path to the SQLite database file (`.db`) |
-| `DUCKDB_PATH` | populate DuckDB | Path to the DuckDB database file (`.duckdb`) |
-| `DERIVED_LOCALDATA_PATH` | populate | Root directory for derived outputs |
-| `DERIVED_CORR_FOLDER` | populate | Subfolder under derived path for correlation pickles |
-
-AWS credentials must be configured locally (for example via `~/.aws/credentials`) for S3 downloads.
+| Path | Role |
+|---|---|
+| [`src/backends/`](src/backends/) | SQLite / DuckDB read-write backends (`DataSink`) |
+| [`src/ingestion/`](src/ingestion/) | Generic local-file → database loading (parquet, CSV, feather) with optional Polars transforms and a Hamilton DAG |
+| [`src/ycs/`](src/ycs/) | YCS-specific correlation pipeline (Hamilton DAG on top of `ingestion`) |
+| [`src/download_ycs.py`](src/download_ycs.py) | Download YCS parquet from S3 |
+| [`src/populate_ycs_sqlite.py`](src/populate_ycs_sqlite.py) | Populate YCS data into SQLite |
+| [`src/populate_ycs_duckdb.py`](src/populate_ycs_duckdb.py) | Populate YCS data into DuckDB |
+| [`src/populate_equity_db.py`](src/populate_equity_db.py) | Populate equity EOD CSVs into SQLite and DuckDB |
+| [`src/create_corr_files.py`](src/create_corr_files.py) | Standalone YCS correlation pickle generation |
+| [`tests/`](tests/) | `pytest` tests for ingestion and transforms |
 
 ---
 
-## 1. Download data from S3
+## Configuration
 
-[`src/download_ycs.py`](src/download_ycs.py) fetches transformed parquet files from S3 into `LOCALDATA_PATH`. By default it downloads the most recent Friday's data under:
+Copy and edit [`.env`](.env). For S3 downloads, also create a local [`.secrets`](.secrets) (gitignored) with bucket and path overrides.
+
+| Variable | Used by | Description |
+|---|---|---|
+| `LOCALDATA_PATH` | download, YCS populate | Local root for YCS parquet (`zero_coupon`, `par`, `spot_fx_rates` subfolders). Typically set in `.secrets`. |
+| `LOCALDATA_BUCKET_NAME` | download | S3 bucket name (`.secrets`) |
+| `LOCALSOURCE_NAME` | download | S3 prefix root, e.g. `augur` (`.secrets`) |
+| `SQLITEDB_PATH` | YCS populate SQLite | SQLite database path (must end in `.db` when resolved from env) |
+| `DUCKDB_PATH` | YCS populate DuckDB | DuckDB database path (must end in `.duckdb` when resolved from env) |
+| `DERIVED_LOCALDATA_PATH` | YCS correlations | Root for derived outputs |
+| `DERIVED_CORR_FOLDER` | YCS correlations | Subfolder for correlation pickle files |
+
+YCS populate scripts load **only** [`.env`](.env) explicitly; `LOCALDATA_PATH` for `--load-from-files` is still picked up when backends import and load `.secrets`.
+
+Equity populate ([`populate_equity_db.py`](src/populate_equity_db.py)) uses **hard-coded paths** at the top of the file (CSV directory and database files), not `.env`.
+
+AWS credentials must be configured locally (for example `~/.aws/credentials`) for S3 downloads.
+
+---
+
+## Generic ingestion (`src/ingestion/`)
+
+Shared module for reading local files and loading them into any `DataSink` backend.
+
+### Supported file types
+
+`.parquet`, `.csv`, `.feather`, `.ipc` — all files in a directory are read concurrently and concatenated. **Subdirectories are not scanned.**
+
+### Main API
+
+```python
+from backends import DuckDBSource
+from ingestion import (
+    load_directories_into_tables,
+    run_load_directories_into_tables,  # Hamilton wrapper
+    PrefixedMeltTransform,
+    FileSourceTransform,
+)
+
+run_load_directories_into_tables(
+    DuckDBSource,
+    {"my_table": r"D:\data\input"},
+    db_path=r"D:\data\duckdb\my_data.duckdb",
+    extensions=frozenset({".csv"}),
+    transforms=[PrefixedMeltTransform(separator=".", group_column="Stock", exclude=["Index"])],
+)
+```
+
+### Transforms (optional, applied per file in order)
+
+| Transform | Purpose |
+|---|---|
+| `MeltTransform` | Unpivot to long format (`unpivot`) |
+| `PrefixedMeltTransform` | Reshape `{prefix}.{metric}` columns into one row per prefix with wide metric columns |
+| `LitColumnTransform` | Add a column with a fixed literal |
+| `FileSourceTransform` | Add `file_source` with the file's absolute path |
+| `FilenamePartTransform` | Add a column from a token of the filename stem (split on a separator) |
+| `MapColumnTransform` | Map an existing column into a new column via a callable |
+| `CastDateColumnTransform` | Cast a column to Polars `Date` |
+
+Transforms are only applied when passed via `transforms=[...]` or the legacy `file_transform=` callable.
+
+Hamilton drivers use **`overrides=`** (not `inputs=`) when calling `dr.execute()`.
+
+### Tests
+
+```bash
+uv run pytest tests/ -v
+```
+
+---
+
+## 1. Download YCS data from S3
+
+[`src/download_ycs.py`](src/download_ycs.py) fetches transformed parquet files into `LOCALDATA_PATH`. By default it downloads the most recent Friday's data from:
 
 ```
 s3://{LOCALDATA_BUCKET_NAME}/{LOCALSOURCE_NAME}/{date}/transformed/
 ```
 
-In order to download from an S3 bucket of your choice to a directory of your choice, change the arguments to `download_s3_prefix` under the `__main__` of [`src/download_ycs.py`](src/download_ycs.py) to your own preferences.
-
-### Example
+To download from a different bucket or prefix, change the arguments to `download_s3_prefix` in the `__main__` block.
 
 ```bash
 uv run python src/download_ycs.py
 ```
 
-### Prerequisites
-
-- `LOCALDATA_PATH`, `LOCALDATA_BUCKET_NAME`, and `LOCALSOURCE_NAME` set in `.env` / `.secrets`
-- Valid AWS credentials with read access to the bucket
+**Prerequisites:** `LOCALDATA_PATH`, `LOCALDATA_BUCKET_NAME`, and `LOCALSOURCE_NAME` in `.env` / `.secrets`, plus valid AWS credentials.
 
 ---
 
-## 2. Populate a SQLite database
+## 2. Populate YCS into SQLite
 
-[`src/populate_ycs_sqlite.py`](src/populate_ycs_sqlite.py) loads local parquet files into SQLite, optionally computes rolling correlations, and writes results to the `window_corr` table.
-
-The database path comes from `SQLITEDB_PATH`.
-
-### Load parquet files only
-
-Creates or overwrites `zero_rates`, `par_rates`, and `spotfx` tables from parquet directories under `LOCALDATA_PATH`.
+[`src/populate_ycs_sqlite.py`](src/populate_ycs_sqlite.py) resolves the database path from `SQLITEDB_PATH` in `.env` and runs the shared YCS Hamilton pipeline.
 
 ```bash
+# Load parquet only
 uv run python src/populate_ycs_sqlite.py --load-from-files
-```
 
-### Compute correlation pickle files only
-
-Reads rate tables from SQLite and writes melted correlation pickles to `{DERIVED_LOCALDATA_PATH}/{DERIVED_CORR_FOLDER}/`.
-
-```bash
+# Compute correlation pickles only (reads existing rate tables)
 uv run python src/populate_ycs_sqlite.py --create-corr-files
-```
 
-### Load correlation pickles into SQLite
-
-Reads existing pickle files and appends them to the `window_corr` table (deduplicated on date, observable, sources, window size, and correlation type).
-
-```bash
+# Load pickles into window_corr table
 uv run python src/populate_ycs_sqlite.py --populate-sqlite-corr-from-files
-```
 
-### Full pipeline
-
-Download data first, then run all three steps together:
-
-```bash
+# Full pipeline
 uv run python src/download_ycs.py
-
 uv run python src/populate_ycs_sqlite.py \
   --load-from-files \
   --create-corr-files \
@@ -90,51 +141,52 @@ uv run python src/populate_ycs_sqlite.py \
 
 ---
 
-## 3. Populate a DuckDB database
+## 3. Populate YCS into DuckDB
 
-[`src/populate_ycs_duckdb.py`](src/populate_ycs_duckdb.py) mirrors the SQLite workflow using DuckDB. The database path comes from `DUCKDB_PATH`.
-
-### Load parquet files only
+[`src/populate_ycs_duckdb.py`](src/populate_ycs_duckdb.py) is identical to the SQLite script but uses `DUCKDB_PATH` and `--populate-duckdb-corr-from-files`.
 
 ```bash
-uv run python src/populate_ycs_duckdb.py --load-from-files
-```
-
-### Compute correlation pickle files only
-
-```bash
-uv run python src/populate_ycs_duckdb.py --create-corr-files
-```
-
-### Load correlation pickles into DuckDB
-
-```bash
-uv run python src/populate_ycs_duckdb.py --populate-duckdb-corr-from-files
-```
-
-### Full pipeline
-
-```bash
-uv run python src/download_ycs.py
-
-uv run python src/populate_ycs_duckdb.py \
-  --load-from-files \
-  --create-corr-files \
-  --populate-duckdb-corr-from-files
+uv run python src/populate_ycs_duckdb.py --load-from-files --create-corr-files --populate-duckdb-corr-from-files
 ```
 
 ---
 
-## Typical workflow
+## 4. Standalone correlation files
+
+[`src/create_corr_files.py`](src/create_corr_files.py) reads rate tables from a configured database and writes correlation pickles only (no `window_corr` load).
 
 ```bash
-# 1. Fetch latest transformed data from S3
-uv run python src/download_ycs.py
+uv run python src/create_corr_files.py --backend duckdb --starting-year 2007
+```
 
-# 2. Load into your chosen database and build correlations
-uv run python src/populate_ycs_sqlite.py --load-from-files --create-corr-files --populate-sqlite-corr-from-files
-# or
+---
+
+## 5. Populate equity EOD data
+
+[`src/populate_equity_db.py`](src/populate_equity_db.py) loads top-level CSV files from a configured directory into a single `equity_eod` table on both DuckDB and SQLite. Paths and transforms are declared explicitly at the top of the script:
+
+- **CSV directory:** `D:\data\equity\eod`
+- **DuckDB:** `D:\data\duckdb\equity_eod_data.duckdb`
+- **SQLite:** `D:\data\sqlite\equity_eod_data.sqlite`
+
+Transforms applied (in order):
+
+1. `PrefixedMeltTransform` — separator `.`, `Stock` column, `Index` excluded from melt
+2. `FilenamePartTransform` — `EqIndex` from filename stem (split on `_`)
+3. `FileSourceTransform` — absolute path in `file_source`
+4. `CastDateColumnTransform` — `Index` cast to date
+
+```bash
+uv run python src/populate_equity_db.py
+```
+
+---
+
+## Typical YCS workflow
+
+```bash
+uv run python src/download_ycs.py
 uv run python src/populate_ycs_duckdb.py --load-from-files --create-corr-files --populate-duckdb-corr-from-files
 ```
 
-Both populate scripts share the same correlation logic in [`src/ycs/`](src/ycs/); only the database backend differs.
+YCS populate scripts share correlation logic in [`src/ycs/`](src/ycs/); file loading goes through [`src/ingestion/`](src/ingestion/). Only the database backend and env-based path differ between SQLite and DuckDB entrypoints.

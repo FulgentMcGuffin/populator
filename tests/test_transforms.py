@@ -9,7 +9,10 @@ import pytest
 
 from backends import DuckDBSource, SQLiteSource
 from ingestion import (
+    CastDateColumnTransform,
+    CastNumericStringColumnsTransform,
     FileSourceTransform,
+    FilenamePartTransform,
     LitColumnTransform,
     MapColumnTransform,
     MeltTransform,
@@ -58,6 +61,49 @@ def equity_wide_frame() -> pl.DataFrame:
     )
 
 
+def test_cast_numeric_string_columns_transform_parses_scientific_notation() -> None:
+    df = pl.DataFrame(
+        {
+            "Index": ["2024-01-01", "2024-01-02"],
+            "LR.PA.Volume": ["4e+05", "1.2e+06"],
+            "LR.PA.Close": ["10.5", "11.0"],
+        }
+    )
+
+    result = CastNumericStringColumnsTransform(exclude=["Index"]).apply(
+        "equity.csv",
+        df,
+    )
+
+    assert result.schema["Index"] == pl.String
+    assert result["LR.PA.Volume"].to_list() == [400000.0, 1200000.0]
+    assert result["LR.PA.Close"].to_list() == [10.5, 11.0]
+
+
+def test_load_csv_with_scientific_notation_via_infer_schema_length_zero(
+    tmp_path: Path,
+) -> None:
+    csv_path = tmp_path / "CAC40_daily.csv"
+    csv_path.write_text(
+        "Index,AC.PA.Volume\n"
+        "2024-01-01,4e+05\n"
+        "2024-01-02,1000\n",
+        encoding="utf-8",
+    )
+
+    result = load_files_from_dir(
+        tmp_path,
+        extensions=frozenset({".csv"}),
+        csv_infer_schema_length=0,
+        transforms=[
+            CastNumericStringColumnsTransform(exclude=["Index"]),
+            CastDateColumnTransform(column="Index", format="YYYY-mm-dd HH:MM:SS"),
+        ],
+    )
+
+    assert result["AC.PA.Volume"].to_list() == [400000.0, 1000.0]
+
+
 def test_prefixed_melt_transform_equity_columns(equity_wide_frame: pl.DataFrame) -> None:
     result = PrefixedMeltTransform(
         separator=".",
@@ -86,6 +132,44 @@ def test_prefixed_melt_transform_equity_columns(equity_wide_frame: pl.DataFrame)
     assert ac["Date"].to_list() == ["2024-01-01", "2024-01-02"]
     assert ac["Index"].to_list() == [100.0, 101.0]
     assert ac["Index.2"].to_list() == [200.0, 201.0]
+
+
+def test_filename_part_transform(tmp_path: Path, wide_frame: pl.DataFrame) -> None:
+    file_path = tmp_path / "CAC40_daily.csv"
+    file_path.touch()
+
+    result = FilenamePartTransform(
+        column="EqIndex",
+        separator="_",
+        part_index=0,
+    ).apply(str(file_path), wide_frame)
+
+    assert result["EqIndex"].to_list() == ["CAC40", "CAC40"]
+
+
+def test_cast_date_column_transform() -> None:
+    from datetime import date
+
+    df = pl.DataFrame({"Index": ["2024-01-01", "2024-01-02"]})
+
+    result = CastDateColumnTransform(column="Index").apply("equity.csv", df)
+
+    assert result.schema["Index"] == pl.Date
+    assert result["Index"].to_list() == [date(2024, 1, 1), date(2024, 1, 2)]
+
+
+def test_cast_date_column_transform_with_datetime_format() -> None:
+    from datetime import date
+
+    df = pl.DataFrame({"Index": ["2024-01-01 16:00:00", "2024-01-02 00:00:00"]})
+
+    result = CastDateColumnTransform(
+        column="Index",
+        format="YYYY-mm-dd HH:MM:SS",
+    ).apply("equity.csv", df)
+
+    assert result.schema["Index"] == pl.Date
+    assert result["Index"].to_list() == [date(2024, 1, 1), date(2024, 1, 2)]
 
 
 def test_melt_transform(wide_frame: pl.DataFrame) -> None:

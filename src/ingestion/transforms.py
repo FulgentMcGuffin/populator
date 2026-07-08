@@ -5,14 +5,27 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Protocol
 
 import polars as pl
 
 FileTransform = Callable[[str, pl.DataFrame], pl.DataFrame]
 
+_POLARS_DATE_FORMAT_ALIASES: dict[str, str] = {
+    "YYYY-mm-dd HH:MM:SS": "%Y-%m-%d %H:%M:%S",
+    "YYYY-mm-dd": "%Y-%m-%d",
+}
+
+
+def _resolve_date_format(format: str) -> str:
+    return _POLARS_DATE_FORMAT_ALIASES.get(format, format)
+
 __all__ = [
+    "CastDateColumnTransform",
+    "CastNumericStringColumnsTransform",
     "FileSourceTransform",
+    "FilenamePartTransform",
     "IngestionTransform",
     "LitColumnTransform",
     "MapColumnTransform",
@@ -187,6 +200,83 @@ class MapColumnTransform:
             return_dtype=self.return_dtype,
         )
         return df.with_columns(expr.alias(self.target_column))
+
+
+@dataclass(frozen=True)
+class FilenamePartTransform:
+    """Add a column from a token of the file stem split on *separator*."""
+
+    column: str
+    separator: str
+    part_index: int = 0
+
+    def apply(self, path: str, df: pl.DataFrame) -> pl.DataFrame:
+        parts = Path(path).stem.split(self.separator)
+        if self.part_index < 0 or self.part_index >= len(parts):
+            raise ValueError(
+                f"Cannot take part {self.part_index} from filename stem "
+                f"{Path(path).stem!r} split by {self.separator!r} in {path}"
+            )
+        return LitColumnTransform(self.column, parts[self.part_index]).apply(path, df)
+
+
+@dataclass(frozen=True)
+class CastNumericStringColumnsTransform:
+    """Cast string columns to numeric values (e.g. scientific notation ``4e+05``).
+
+    Use after reading CSV with ``infer_schema_length=0`` so Polars does not
+    reject integer-looking columns that contain scientific notation.
+    """
+
+    exclude: tuple[str, ...] | list[str] = ()
+    dtype: pl.DataType = pl.Float64
+
+    def apply(self, path: str, df: pl.DataFrame) -> pl.DataFrame:
+        exclude = set(self.exclude)
+        exprs: list[pl.Expr] = []
+        for column in df.columns:
+            if column in exclude:
+                continue
+            if df.schema[column] not in {pl.Utf8, pl.String}:
+                continue
+            exprs.append(pl.col(column).cast(self.dtype, strict=False).alias(column))
+        if not exprs:
+            return df
+        return df.with_columns(exprs)
+
+
+@dataclass(frozen=True)
+class CastDateColumnTransform:
+    """Cast *column* to Polars ``Date`` (Python ``datetime.date``).
+
+    *format* uses Polars/chrono tokens (e.g. ``YYYY-mm-dd HH:MM:SS``).
+    When omitted, Polars infers the format for string columns.
+    """
+
+    column: str
+    format: str | None = None
+
+    def apply(self, path: str, df: pl.DataFrame) -> pl.DataFrame:
+        if self.column not in df.columns:
+            raise ValueError(
+                f"Date cast column {self.column!r} missing from {path}"
+            )
+
+        expr = pl.col(self.column)
+        dtype = df.schema[self.column]
+        if self.format is not None:
+            polars_format = _resolve_date_format(self.format)
+            expr = (
+                expr.cast(pl.Utf8)
+                .str.to_datetime(polars_format, strict=False)
+                .dt.date()
+            )
+        elif dtype in {pl.Utf8, pl.String}:
+            expr = expr.str.to_date(strict=False)
+        else:
+            expr = expr.cast(pl.Date, strict=False)
+
+        return df.with_columns(expr.alias(self.column))
 
 
 def apply_transforms(

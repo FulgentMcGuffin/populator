@@ -6,7 +6,10 @@ from .hamilton_nodes import directories_loaded, load_summary
 from .load import load_directories_into_tables, load_directory_into_table
 from .pipeline import build_driver, ingestion_overrides, run_load_directories_into_tables
 from .transforms import (
+    CastDateColumnTransform,
+    CastNumericStringColumnsTransform,
     FileSourceTransform,
+    FilenamePartTransform,
     IngestionTransform,
     LitColumnTransform,
     MapColumnTransform,
@@ -19,7 +22,10 @@ from .transforms import (
 
 __all__ = [
     "SUPPORTED_EXTENSIONS",
+    "CastDateColumnTransform",
+    "CastNumericStringColumnsTransform",
     "FileSourceTransform",
+    "FilenamePartTransform",
     "FileTransform",
     "IngestionTransform",
     "LitColumnTransform",

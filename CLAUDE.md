@@ -4,84 +4,141 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Populator aggregates different (sometimes independent) data streams that take data (mostly from local files at the moment) and upload them to databases (mostly slqite and duckdb). In additon to this it also sometimes takes care of 1. sourcing those files (e.g. zero rate and par rate curves or spot FX rates by downloading them from AWS S3)  2. computing derived data before populating the databases with them (e.g. computing rolling Pearson/distance-correlation matrices between sources and writes them into a `window_corr` table.)
+Populator loads local files (parquet, CSV, feather) into SQLite or DuckDB. It also supports:
 
+1. **Sourcing** — downloading YCS parquet from AWS S3 ([`download_ycs.py`](src/download_ycs.py))
+2. **Generic ingestion** — shared [`src/ingestion/`](src/ingestion/) module with optional Polars transforms and Hamilton orchestration
+3. **YCS analytics** — rolling Pearson / distance-correlation matrices written to `window_corr` ([`src/ycs/`](src/ycs/))
+4. **Domain entry scripts** — thin wrappers such as [`populate_ycs_duckdb.py`](src/populate_ycs_duckdb.py), [`populate_equity_db.py`](src/populate_equity_db.py)
 
 ## Commands
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run all commands from the repository root.
+Run from the repository root:
 
 ```bash
-uv sync                                    # install/update dependencies
+uv sync
+uv sync --extra dev          # pytest
 
-# 1. Download latest parquet data from S3 (most recent Friday, into LOCALDATA_PATH)
+# Tests
+uv run pytest tests/ -v
+
+# YCS: download then populate (pick one backend)
 uv run python src/download_ycs.py
-
-# 2. Load parquet -> DB, build correlation pickles, load pickles -> DB (pick one backend)
 uv run python src/populate_ycs_sqlite.py --load-from-files --create-corr-files --populate-sqlite-corr-from-files
 uv run python src/populate_ycs_duckdb.py --load-from-files --create-corr-files --populate-duckdb-corr-from-files
 
-# Steps can be run independently via their own flags:
+# YCS flags (independent steps)
 #   --load-from-files
 #   --create-corr-files
 #   --populate-<sqlite|duckdb>-corr-from-files
 
-# Standalone correlation-file generation (reads rate tables from a DB, writes pickles only)
+# Correlation pickles only
 uv run python src/create_corr_files.py --backend duckdb --starting-year 2007
+
+# Equity EOD CSVs -> SQLite + DuckDB (paths in script)
+uv run python src/populate_equity_db.py
 ```
 
-There is no test suite or linter configured in this repo (no `pytest`, `ruff`, etc. in `pyproject.toml` or `.venv`). Don't assume `uv run pytest` or similar will work. For formatter use Black formatter (installed as an extension in Cursor)
+Formatter: Black (Cursor extension). Tests: `pytest` with `pythonpath = ["src"]` in `pyproject.toml`.
 
 ## Configuration
 
-Settings come from `.env` (committed defaults) and `.secrets` (local, gitignored, S3-related). Both are loaded via `dotenv.load_dotenv`, with `.env` loaded first and `.secrets` typically taking precedence for S3 vars. Key variables:
+Settings come from [`.env`](.env) (committed defaults) and [`.secrets`](.secrets) (local, gitignored, S3-related). Backend modules also call `load_dotenv` on import.
 
 | Variable | Used by | Description |
 |---|---|---|
-| `LOCALDATA_PATH` | download, populate | Local root for parquet files (subfolders: `zero_coupon`, `par`, `spot_fx_rates`) |
-| `LOCALDATA_BUCKET_NAME` / `LOCALSOURCE_NAME` | download | S3 bucket / prefix root |
-| `SQLITEDB_PATH` / `DUCKDB_PATH` | populate | Must end in `.db` / `.duckdb` respectively (validated at connect time) |
-| `DERIVED_LOCALDATA_PATH` / `DERIVED_CORR_FOLDER` | populate | Where correlation pickle files are written/read |
+| `LOCALDATA_PATH` | download, YCS `--load-from-files` | YCS parquet root (`zero_coupon`, `par`, `spot_fx_rates`). Usually in `.secrets`. |
+| `LOCALDATA_BUCKET_NAME` / `LOCALSOURCE_NAME` | download | S3 bucket / prefix |
+| `SQLITEDB_PATH` / `DUCKDB_PATH` | YCS populate | Must end in `.db` / `.duckdb` when resolved via env helpers |
+| `DERIVED_LOCALDATA_PATH` / `DERIVED_CORR_FOLDER` | YCS correlations | Pickle output directory |
 
-AWS credentials must be configured locally (e.g. `~/.aws/credentials`) for S3 downloads. Since `.env`/`.secrets` are gitignored except `.env` (check `git status` before editing — `.env` currently has local modifications), never commit real paths or bucket names on the user's behalf without checking.
+YCS populate entry scripts load **`.env` only** explicitly, then pass `SQLiteSource.get_full_db_path()` / `DuckDBSource.get_full_db_path()` into `run_populate_pipeline(..., db_path=...)`. `LOCALDATA_PATH` for parquet loading still arrives via backend `.secrets` load on import.
+
+Equity populate uses **explicit paths** in [`populate_equity_db.py`](src/populate_equity_db.py), not env vars.
+
+Never commit real bucket names or secrets without checking `git status`.
 
 ## Architecture
 
 ### Layering
 
 ```
-download_ycs.py                  -- S3 -> local parquet files (standalone, no dependency on backends/ycs)
-src/backends/                    -- storage-agnostic DB layer (SQLite, DuckDB)
-src/ycs/                         -- pipeline logic shared by both backends
-populate_ycs_sqlite.py / _duckdb.py  -- thin CLI entrypoints that pick a backend and call ycs.pipeline
-create_corr_files.py             -- standalone entrypoint for the correlation-file-only step
+download_ycs.py                     S3 -> local parquet (standalone)
+src/backends/                       SQLite + DuckDB DataSink / DataBackend
+src/ingestion/                      generic file read, transforms, DB load, Hamilton DAG
+src/ycs/                            YCS correlation pipeline (Hamilton DAG composed with ingestion)
+populate_ycs_sqlite.py / _duckdb.py thin YCS CLI -> ycs.pipeline.run_populate_pipeline
+populate_equity_db.py               thin equity CLI -> ingestion.run_load_directories_into_tables
+create_corr_files.py                standalone YCS corr pickle step
+tests/                              pytest for ingestion + transforms
 ```
 
 ### Backend abstraction (`src/backends/`)
 
-`base.py` defines two protocols that everything above this layer depends on instead of a concrete DB:
-- `DataBackend` — read-only surface (`list_tables`, `get_schema`, `run_query`).
-- `DataSink` (ABC) — write surface (`create_table`, `insert`, `update`, `delete`, `execute`), plus concrete helper methods built on those abstract primitives: `create_table_from_polars`, `append_to_table` (schema-validates and dedupes against an existing table), and `remove_duplicates`.
+`base.py` defines:
 
-`SQLiteSource` and `DuckDBSource` each implement `DataSink` (and therefore `DataBackend`). Both are context managers and take a `read_only` flag: `read_only=True` (default) physically opens the connection read-only and rejects write calls with `QueryError`; ingestion code always opens with `read_only=False`. Adding a new storage engine means implementing this one contract — no other code should need to change.
+- `DataBackend` — read-only (`list_tables`, `get_schema`, `run_query`)
+- `DataSink` (ABC) — write (`create_table`, `insert`, …) plus helpers: `create_table_from_polars`, `append_to_table`, `remove_duplicates`
 
-`backends/__init__.py` also exposes `create_backend()`, a factory for the read-only serving path (used by scripts that only query, not ingest).
+`SQLiteSource` and `DuckDBSource` implement both. Default is `read_only=True`; ingestion uses `read_only=False`. Paths can be passed explicitly or derived from `SQLITEDB_PATH` / `DUCKDB_PATH`.
 
-### Pipeline (`src/ycs/`)
+`create_backend()` in `backends/__init__.py` is the read-only factory for serving/query paths.
 
-The populate pipeline is implemented as an [Apache Hamilton](https://github.com/DAGWorks-Inc/hamilton) DAG:
-- `hamilton_nodes.py` — each top-level function is a DAG node; its parameter names are its upstream dependencies (Hamilton wires the graph by name, not by call). CLI flags and config (`source_class`, `backend`, `load_from_files`, `create_corr_files`, `populate_db_corr_from_files`, date range, etc.) are supplied as graph inputs/overrides at `dr.execute(...)` time, not read from globals inside nodes.
-- `workflow.py` — the actual imperative logic the nodes call into (`load_rate_tables`, `build_window_corr_frames`, `save_window_corr`). Correlation pickle files are cached on disk (`_load_or_create_corr_matrices`) and reused across runs unless `overwrite_existing` is set.
-- `pipeline.py` — builds the Hamilton `Driver` and exposes `run_populate_pipeline()` (full flow, terminal node `pipeline_summary`) and `run_create_corr_files()` (correlation-only flow, terminal node `corr_files_created`).
-- `correlations.py` — the actual math: rolling Pearson correlation (pandas `.rolling().corr()`) and distance correlation (`dcor`, via `sliding_window_view`) per tenor, melted into long-form polars frames. Runs per-tenor jobs concurrently via `asyncio.to_thread` when `run_async=True`.
-- `data_loading.py` — reads all `.parquet` files in a directory concurrently (`asyncio`) and concatenates them; tenor column names get normalized from raw numeric strings (e.g. `"1.0"`) into `Y001p0`-style labels via `DEFAULT_TENORS` in `config.py`.
-- `cli.py` — shared `argparse` setup for the two backend-specific populate scripts (flag names are derived from the backend name, e.g. `--populate-sqlite-corr-from-files`).
-- `coverage.py` — reporting helper (`get_coverage`, `get_coverage_plot` using `plotnine`) to inspect date-range coverage per source/table; not part of the populate CLI flow.
+### Ingestion (`src/ingestion/`)
+
+Generic local-file loading used by YCS, equity, and future pipelines.
+
+| Module | Role |
+|---|---|
+| `files.py` | Read parquet/CSV/feather; concurrent directory load via `asyncio` |
+| `transforms.py` | Composable per-file Polars transforms (see below) |
+| `load.py` | `load_directory_into_table`, `load_directories_into_tables` |
+| `hamilton_nodes.py` | DAG nodes: `directories_loaded`, `load_summary` |
+| `pipeline.py` | `build_driver`, `ingestion_overrides`, `run_load_directories_into_tables` |
+
+**Hamilton note:** runtime values must be passed as **`overrides=`** to `dr.execute()`, not `inputs=`. Empty stub nodes return `None` if passed via `inputs`.
+
+**Transforms** (optional, per file, in order):
+
+- `MeltTransform` — long-format unpivot
+- `PrefixedMeltTransform` — `{prefix}.{metric}` wide columns → one row per prefix
+- `LitColumnTransform`, `FileSourceTransform`, `FilenamePartTransform`, `MapColumnTransform`, `CastDateColumnTransform`
+
+Compose with `transforms=[...]` or legacy `file_transform=`. Use `compose_transforms()` internally.
+
+### YCS pipeline (`src/ycs/`)
+
+Hamilton DAG **composed with** `ingestion.hamilton_nodes` via `ingestion.pipeline.build_driver(hamilton_nodes)`.
+
+| Module | Role |
+|---|---|
+| `hamilton_nodes.py` | Correlation DAG nodes; `rate_tables` depends on `directories_loaded` from ingestion |
+| `workflow.py` | Imperative steps: `load_rate_tables`, `build_window_corr_frames`, `save_window_corr` |
+| `pipeline.py` | `run_populate_pipeline`, `run_create_corr_files`; uses `ycs_ingestion_overrides()` |
+| `data_loading.py` | YCS-only: `ycs_table_directories`, `ycs_parquet_transform`, `ycs_ingestion_overrides` |
+| `correlations.py` | Rolling Pearson + distance correlation math |
+| `cli.py` | Shared argparse for YCS populate scripts |
+| `coverage.py` | Coverage plots (not part of populate CLI) |
+| `config.py` | `DEFAULT_TENORS`, `WINDOW_CORR_*`, date defaults |
 
 ### Correlation table semantics
 
-`window_corr` rows are keyed by `(date, observable, source1, source2, window_size, corr_type)` (`WINDOW_CORR_DEDUP_COLUMNS` / `WINDOW_CORR_TABLE` in `config.py`). `corr_type` is either `"pearson"` or `"dcorr"`. Appending always runs through `remove_duplicates(keep="last")` so re-running the populate step is idempotent — newer computations overwrite older ones for the same key.
+`window_corr` dedupe key: `(date, observable, source1, source2, window_size, corr_type)` — see `WINDOW_CORR_DEDUP_COLUMNS` in `config.py`. `corr_type` is `pearson` or `dcorr`. Appends use `remove_duplicates(keep="last")`.
 
-### Tenor naming convention
+### Tenor naming (YCS)
 
-Raw tenor values (years, e.g. `2.0`) are encoded as `Y{value:05.1f}` with the decimal point replaced by `p`, e.g. `2.0` -> `Y002p0`, `0.5` -> `Y000p5`. This happens in `data_loading.load_parquets_from_dir` and must match `DEFAULT_TENORS` in `src/ycs/config.py`.
+Numeric tenor columns in parquet are renamed to `Y{value:05.1f}` with `.` → `p` (e.g. `2.0` → `Y002p0`) in `ycs_parquet_transform`. Must align with `DEFAULT_TENORS` in `config.py`.
+
+## Adding a new data pipeline
+
+1. Define paths and transforms explicitly in a new `populate_*.py` entry script (see `populate_equity_db.py`).
+2. Reuse `ingestion.run_load_directories_into_tables` or `load_directories_into_tables` for simple loads.
+3. For multi-step DAGs, add Hamilton nodes and compose with `ingestion.pipeline.build_driver(your_nodes)`.
+4. For YCS-like correlation workflows, extend `src/ycs/hamilton_nodes.py` rather than duplicating ingestion logic.
+
+## Common pitfalls
+
+- Hamilton `inputs=` does not override stub nodes — use `overrides=`.
+- `rate_tables` (and downstream YCS nodes) must run **after** `directories_loaded` when using `--load-from-files`.
+- SQLite `:memory:` is isolated per connection; multi-step in-memory tests need a single connection or a temp file.
+- `PrefixedMeltTransform` requires meltable columns to contain the separator; put identifier columns in `exclude` / `ignore`.
