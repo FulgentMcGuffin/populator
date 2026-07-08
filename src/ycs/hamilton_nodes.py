@@ -14,7 +14,6 @@ from .config import (
     DEFAULT_CORRELATION_WINDOW_SIZES,
     DEFAULT_TENORS,
 )
-from .data_loading import populate_from_files
 from .workflow import (
     build_window_corr_frames,
     corr_dir_path,
@@ -23,16 +22,8 @@ from .workflow import (
 )
 
 
-def source_class() -> type[Any]:
-    """Database backend class (SQLiteSource or DuckDBSource)."""
-
-
 def backend() -> str:
     """Backend name: ``sqlite`` or ``duckdb``."""
-
-
-def load_from_files() -> bool:
-    """Whether to load parquet directories into the database."""
 
 
 def create_corr_files() -> bool:
@@ -63,18 +54,13 @@ def overwrite_existing() -> bool:
     """Whether to overwrite existing correlation pickle files."""
 
 
-def populate_parquet_tables(
+def rate_tables(
     source_class: type[Any],
-    load_from_files: bool,
-) -> None:
-    """Load zero rates, par rates, and spot FX parquet files when requested."""
-    if load_from_files:
-        populate_from_files(source_class)
-
-
-def rate_tables(source_class: type[Any]) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    db_path: str | None,
+    directories_loaded: dict[str, bool],
+) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """Read all rate tables from the database."""
-    return load_rate_tables(source_class)
+    return load_rate_tables(source_class, db_path)
 
 
 def zero_rates(rate_tables: tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]) -> pl.DataFrame:
@@ -146,13 +132,14 @@ def window_corr_dataframe(
 
 def saved_window_corr(
     source_class: type[Any],
+    db_path: str | None,
     backend: str,
     populate_db_corr_from_files: bool,
     window_corr_dataframe: pl.DataFrame | None,
 ) -> None:
     """Persist assembled correlation rows to the database when requested."""
     if populate_db_corr_from_files and window_corr_dataframe is not None:
-        save_window_corr(source_class, window_corr_dataframe, backend)
+        save_window_corr(source_class, window_corr_dataframe, backend, db_path)
 
 
 def corr_files_created(
@@ -186,7 +173,7 @@ def corr_files_created(
 def pipeline_summary(
     zero_rates: pl.DataFrame,
     saved_window_corr: None,
-    populate_parquet_tables: None,
+    directories_loaded: dict[str, bool],
 ) -> dict[str, int]:
     """Terminal node for the full populate workflow."""
     print(zero_rates.shape)

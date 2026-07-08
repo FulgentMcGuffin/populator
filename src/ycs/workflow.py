@@ -16,7 +16,6 @@ from .config import (
     WINDOW_CORR_TABLE,
 )
 from .correlations import get_corr_matrix
-from .data_loading import populate_from_files
 
 __all__ = [
     "build_window_corr_frames",
@@ -28,9 +27,10 @@ __all__ = [
 
 def load_rate_tables(
     source_class: type[Any],
+    db_path: str | None = None,
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """Read zero rates, par rates, and spot FX from the database."""
-    with source_class(read_only=False) as db:
+    with source_class(db_path, read_only=False) as db:
         zero_rates = pl.DataFrame(db.execute("SELECT * FROM zero_rates")).with_columns(
             pl.col("date").str.to_date()
         )
@@ -212,11 +212,12 @@ def save_window_corr(
     source_class: type[Any],
     df_pl_all: pl.DataFrame,
     backend_name: str,
+    db_path: str | None = None,
 ) -> None:
     """Append or create the window_corr table and remove duplicate rows."""
     df_pl_all = df_pl_all.rechunk()
     label = backend_label(backend_name)
-    with source_class(read_only=False) as db:
+    with source_class(db_path, read_only=False) as db:
         if WINDOW_CORR_TABLE in db.list_tables():
             db.append_to_table(WINDOW_CORR_TABLE, df_pl_all)
         else:
