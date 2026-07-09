@@ -32,6 +32,12 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 load_dotenv(Path(__file__).resolve().parents[2] / ".secrets", override=False)
 
 
+def _quote_ident(name: str) -> str:
+    """Quote an SQL identifier for DuckDB (handles spaces and reserved words)."""
+    escaped = name.replace('"', '""')
+    return f'"{escaped}"'
+
+
 def _resolve_default_db_path() -> tuple[str, str]:
     """Resolve ``(directory, filename)`` for the default DB from ``DUCKDB_PATH``.
 
@@ -223,7 +229,7 @@ class DuckDBSource(DataSink):
     ) -> bool:
         self._require_writable()
         columns_sql = ",\n    ".join(
-            f"{col} {definition}" for col, definition in schema.items()
+            f"{_quote_ident(col)} {definition}" for col, definition in schema.items()
         )
         conn = self._conn()
         already_exists = (
@@ -239,9 +245,11 @@ class DuckDBSource(DataSink):
             return False
 
         if overwrite_if_exists:
-            conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+            conn.execute(f"DROP TABLE IF EXISTS {_quote_ident(table_name)}")
 
-        conn.execute(f"CREATE TABLE {table_name} (\n    {columns_sql}\n);")
+        conn.execute(
+            f"CREATE TABLE {_quote_ident(table_name)} (\n    {columns_sql}\n);"
+        )
         return True
 
     def select(

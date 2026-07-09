@@ -9,12 +9,14 @@ from typing import Any
 
 import polars as pl
 
-from .files import SUPPORTED_EXTENSIONS, load_files_from_dir
-from .transforms import FileTransform, IngestionTransform
+from .files import SUPPORTED_EXTENSIONS, load_files_from_dir, read_local_file
+from .transforms import FileTransform, IngestionTransform, compose_transforms
 
 __all__ = [
     "load_directories_into_tables",
     "load_directory_into_table",
+    "load_file_into_table",
+    "load_files_into_tables",
     "source_from_filename_transform",
 ]
 
@@ -23,6 +25,93 @@ def source_from_filename_transform(path: str, df: pl.DataFrame) -> pl.DataFrame:
     """Add a ``source`` column from the file stem (no extension)."""
     source = Path(path).stem
     return df.with_columns(pl.lit(source).alias("source"))
+
+
+def load_file_into_table(
+    db: Any,
+    table_name: str,
+    file_path: str | Path,
+    *,
+    transforms: Sequence[IngestionTransform] | None = None,
+    transform: FileTransform | None = None,
+    overwrite_if_exists: bool = True,
+    progress: bool = False,
+    csv_infer_schema_length: int | None = None,
+) -> bool:
+    """Load a single file into *table_name*."""
+    file_path = Path(file_path)
+    if progress:
+        from tqdm import tqdm
+
+        tqdm.write(f"Reading {file_path.name}")
+
+    df = read_local_file(file_path, csv_infer_schema_length=csv_infer_schema_length)
+    file_transform = compose_transforms(transforms, file_transform=transform)
+    if file_transform is not None:
+        df = file_transform(str(file_path), df)
+
+    if progress:
+        from tqdm import tqdm
+
+        tqdm.write(
+            f"Writing {df.height:,} rows x {df.width} columns to table {table_name!r}"
+        )
+    return db.create_table_from_polars(table_name, df, overwrite_if_exists)
+
+
+def load_files_into_tables(
+    source_class: type[Any],
+    table_files: dict[str, str | Path],
+    *,
+    db_path: str | Path | None = None,
+    transforms: Sequence[IngestionTransform] | None = None,
+    transform: FileTransform | None = None,
+    overwrite_if_exists: bool = True,
+    skip_missing: bool = True,
+    progress: bool = False,
+    csv_infer_schema_length: int | None = None,
+) -> dict[str, bool]:
+    """Load each file into its named table using a writable backend."""
+    results: dict[str, bool] = {}
+    if progress:
+        from tqdm import tqdm
+    else:
+        tqdm = None  # type: ignore[assignment]
+
+    with source_class(db_path, read_only=False) as db:
+        for table_name, file_path in table_files.items():
+            file_path = Path(file_path)
+            if not file_path.is_file():
+                if skip_missing:
+                    message = f"Skipping {table_name}: file {file_path} does not exist"
+                    if progress:
+                        tqdm.write(message)
+                    else:
+                        print(message)
+                    results[table_name] = False
+                    continue
+                raise FileNotFoundError(
+                    f"File for table {table_name} does not exist: {file_path}"
+                )
+
+            if progress:
+                tqdm.write(f"Loading table {table_name!r} from {file_path}")
+
+            results[table_name] = load_file_into_table(
+                db,
+                table_name,
+                file_path,
+                transforms=transforms,
+                transform=transform,
+                overwrite_if_exists=overwrite_if_exists,
+                progress=progress,
+                csv_infer_schema_length=csv_infer_schema_length,
+            )
+            if progress:
+                status = "created" if results[table_name] else "unchanged"
+                tqdm.write(f"Finished {table_name!r} ({status})")
+
+    return results
 
 
 def load_directory_into_table(

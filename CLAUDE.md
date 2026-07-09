@@ -9,7 +9,7 @@ Populator loads local files (parquet, CSV, feather) into SQLite or DuckDB. It al
 1. **Sourcing** — downloading YCS parquet from AWS S3 ([`download_ycs.py`](src/download_ycs.py))
 2. **Generic ingestion** — shared [`src/ingestion/`](src/ingestion/) module with optional Polars transforms and Hamilton orchestration
 3. **YCS analytics** — rolling Pearson / distance-correlation matrices written to `window_corr` ([`src/ycs/`](src/ycs/))
-4. **Domain entry scripts** — thin wrappers such as [`populate_ycs_duckdb.py`](src/populate_ycs_duckdb.py), [`populate_equity_db.py`](src/populate_equity_db.py)
+4. **Domain entry scripts** — thin wrappers such as [`populate_ycs_db.py`](src/populate_ycs_db.py), [`populate_equity_db.py`](src/populate_equity_db.py)
 
 ## Commands
 
@@ -22,15 +22,19 @@ uv sync --extra dev          # pytest
 # Tests
 uv run pytest tests/ -v
 
-# YCS: download then populate (pick one backend)
+# YCS: download then populate (SQLite + DuckDB)
 uv run python src/download_ycs.py
-uv run python src/populate_ycs_sqlite.py --load-from-files --create-corr-files --populate-sqlite-corr-from-files
-uv run python src/populate_ycs_duckdb.py --load-from-files --create-corr-files --populate-duckdb-corr-from-files
+uv run python src/populate_ycs_db.py \
+  --load-from-files \
+  --create-corr-files \
+  --populate-sqlite-corr-from-files \
+  --populate-duckdb-corr-from-files
 
 # YCS flags (independent steps)
 #   --load-from-files
 #   --create-corr-files
-#   --populate-<sqlite|duckdb>-corr-from-files
+#   --populate-sqlite-corr-from-files
+#   --populate-duckdb-corr-from-files
 
 # Correlation pickles only
 uv run python src/create_corr_files.py --backend duckdb --starting-year 2007
@@ -52,7 +56,7 @@ Settings come from [`.env`](.env) (committed defaults) and [`.secrets`](.secrets
 | `SQLITEDB_PATH` / `DUCKDB_PATH` | YCS populate | Must end in `.db` / `.duckdb` when resolved via env helpers |
 | `DERIVED_LOCALDATA_PATH` / `DERIVED_CORR_FOLDER` | YCS correlations | Pickle output directory |
 
-YCS populate entry scripts load **`.env` only** explicitly, then pass `SQLiteSource.get_full_db_path()` / `DuckDBSource.get_full_db_path()` into `run_populate_pipeline(..., db_path=...)`. `LOCALDATA_PATH` for parquet loading still arrives via backend `.secrets` load on import.
+YCS populate entry script loads **`.env` only** explicitly, then passes `SQLiteSource.get_full_db_path()` / `DuckDBSource.get_full_db_path()` into `run_populate_pipeline(..., db_path=...)` for each backend. `LOCALDATA_PATH` for parquet loading still arrives via backend `.secrets` load on import.
 
 Equity populate uses **explicit paths** in [`populate_equity_db.py`](src/populate_equity_db.py), not env vars.
 
@@ -67,7 +71,7 @@ download_ycs.py                     S3 -> local parquet (standalone)
 src/backends/                       SQLite + DuckDB DataSink / DataBackend
 src/ingestion/                      generic file read, transforms, DB load, Hamilton DAG
 src/ycs/                            YCS correlation pipeline (Hamilton DAG composed with ingestion)
-populate_ycs_sqlite.py / _duckdb.py thin YCS CLI -> ycs.pipeline.run_populate_pipeline
+populate_ycs_db.py                   thin YCS CLI -> ycs.pipeline.run_populate_pipeline (SQLite + DuckDB)
 populate_equity_db.py               thin equity CLI -> ingestion.run_load_directories_into_tables
 create_corr_files.py                standalone YCS corr pickle step
 tests/                              pytest for ingestion + transforms

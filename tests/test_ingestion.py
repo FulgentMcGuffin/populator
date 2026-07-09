@@ -12,6 +12,7 @@ from ingestion import (
     load_directories_into_tables,
     load_directory_into_table,
     load_files_from_dir,
+    load_files_into_tables,
     read_local_file,
 )
 from ingestion.load import source_from_filename_transform
@@ -78,6 +79,51 @@ def test_create_table_from_polars_with_reserved_column_name(
     assert len(rows) == 2
     assert rows[0]["Stock"] == "AC.PA"
     assert rows[0]["Volume"] == 400000.0
+
+
+@pytest.mark.parametrize(
+    ("source_class", "db_suffix"),
+    [
+        (SQLiteSource, ".sqlite"),
+        (DuckDBSource, ".duckdb"),
+    ],
+)
+def test_load_files_into_tables(
+    source_class: type,
+    db_suffix: str,
+    tmp_path: Path,
+) -> None:
+    mapping_path = tmp_path / "indicator_topic_mapping.csv"
+    indicators_path = tmp_path / "world_bank_indicators_long.csv"
+    mapping_path.write_text(
+        "id,name,topic\nIND1,Indicator One,Health\n",
+        encoding="utf-8",
+    )
+    indicators_path.write_text(
+        "Country Name,Country Code,Series Code,Year,Value,Topic\n"
+        "France,FRA,IND1,2023,1.5,Health\n",
+        encoding="utf-8",
+    )
+
+    db_path = tmp_path / f"world_bank{db_suffix}"
+    results = load_files_into_tables(
+        source_class,
+        {
+            "topic_mapping": mapping_path,
+            "indicators": indicators_path,
+        },
+        db_path=db_path,
+    )
+
+    with source_class(db_path, read_only=True) as db:
+        mapping_rows = db.execute("SELECT * FROM topic_mapping")
+        indicator_rows = db.execute("SELECT * FROM indicators")
+
+    assert results == {"topic_mapping": True, "indicators": True}
+    assert len(mapping_rows) == 1
+    assert mapping_rows[0]["id"] == "IND1"
+    assert len(indicator_rows) == 1
+    assert indicator_rows[0]["Country Code"] == "FRA"
 
 
 @pytest.mark.parametrize("source_class", [SQLiteSource, DuckDBSource])

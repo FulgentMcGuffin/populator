@@ -17,8 +17,7 @@ uv sync --extra dev      # include pytest for tests
 | [`src/ingestion/`](src/ingestion/) | Generic local-file → database loading (parquet, CSV, feather) with optional Polars transforms and a Hamilton DAG |
 | [`src/ycs/`](src/ycs/) | YCS-specific correlation pipeline (Hamilton DAG on top of `ingestion`) |
 | [`src/download_ycs.py`](src/download_ycs.py) | Download YCS parquet from S3 |
-| [`src/populate_ycs_sqlite.py`](src/populate_ycs_sqlite.py) | Populate YCS data into SQLite |
-| [`src/populate_ycs_duckdb.py`](src/populate_ycs_duckdb.py) | Populate YCS data into DuckDB |
+| [`src/populate_ycs_db.py`](src/populate_ycs_db.py) | Populate YCS data into SQLite and DuckDB |
 | [`src/populate_equity_db.py`](src/populate_equity_db.py) | Populate equity EOD CSVs into SQLite and DuckDB |
 | [`src/create_corr_files.py`](src/create_corr_files.py) | Standalone YCS correlation pickle generation |
 | [`tests/`](tests/) | `pytest` tests for ingestion and transforms |
@@ -117,41 +116,33 @@ uv run python src/download_ycs.py
 
 ---
 
-## 2. Populate YCS into SQLite
+## 2. Populate YCS into SQLite and DuckDB
 
-[`src/populate_ycs_sqlite.py`](src/populate_ycs_sqlite.py) resolves the database path from `SQLITEDB_PATH` in `.env` and runs the shared YCS Hamilton pipeline.
+[`src/populate_ycs_db.py`](src/populate_ycs_db.py) resolves database paths from `SQLITEDB_PATH` and `DUCKDB_PATH` in `.env` and runs the shared YCS Hamilton pipeline for both backends.
 
 ```bash
 # Load parquet only
-uv run python src/populate_ycs_sqlite.py --load-from-files
+uv run python src/populate_ycs_db.py --load-from-files
 
 # Compute correlation pickles only (reads existing rate tables)
-uv run python src/populate_ycs_sqlite.py --create-corr-files
+uv run python src/populate_ycs_db.py --create-corr-files
 
-# Load pickles into window_corr table
-uv run python src/populate_ycs_sqlite.py --populate-sqlite-corr-from-files
+# Load pickles into window_corr table (one or both backends)
+uv run python src/populate_ycs_db.py --populate-sqlite-corr-from-files
+uv run python src/populate_ycs_db.py --populate-duckdb-corr-from-files
 
 # Full pipeline
 uv run python src/download_ycs.py
-uv run python src/populate_ycs_sqlite.py \
+uv run python src/populate_ycs_db.py \
   --load-from-files \
   --create-corr-files \
-  --populate-sqlite-corr-from-files
+  --populate-sqlite-corr-from-files \
+  --populate-duckdb-corr-from-files
 ```
 
 ---
 
-## 3. Populate YCS into DuckDB
-
-[`src/populate_ycs_duckdb.py`](src/populate_ycs_duckdb.py) is identical to the SQLite script but uses `DUCKDB_PATH` and `--populate-duckdb-corr-from-files`.
-
-```bash
-uv run python src/populate_ycs_duckdb.py --load-from-files --create-corr-files --populate-duckdb-corr-from-files
-```
-
----
-
-## 4. Standalone correlation files
+## 3. Standalone correlation files
 
 [`src/create_corr_files.py`](src/create_corr_files.py) reads rate tables from a configured database and writes correlation pickles only (no `window_corr` load).
 
@@ -161,7 +152,7 @@ uv run python src/create_corr_files.py --backend duckdb --starting-year 2007
 
 ---
 
-## 5. Populate equity EOD data
+## 4. Populate equity EOD data
 
 [`src/populate_equity_db.py`](src/populate_equity_db.py) loads top-level CSV files from a configured directory into a single `equity_eod` table on both DuckDB and SQLite. Paths and transforms are declared explicitly at the top of the script:
 
@@ -186,7 +177,11 @@ uv run python src/populate_equity_db.py
 
 ```bash
 uv run python src/download_ycs.py
-uv run python src/populate_ycs_duckdb.py --load-from-files --create-corr-files --populate-duckdb-corr-from-files
+uv run python src/populate_ycs_db.py \
+  --load-from-files \
+  --create-corr-files \
+  --populate-sqlite-corr-from-files \
+  --populate-duckdb-corr-from-files
 ```
 
-YCS populate scripts share correlation logic in [`src/ycs/`](src/ycs/); file loading goes through [`src/ingestion/`](src/ingestion/). Only the database backend and env-based path differ between SQLite and DuckDB entrypoints.
+YCS populate uses shared correlation logic in [`src/ycs/`](src/ycs/); file loading goes through [`src/ingestion/`](src/ingestion/). Database paths come from `SQLITEDB_PATH` and `DUCKDB_PATH` in `.env`.

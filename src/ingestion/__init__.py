@@ -3,7 +3,12 @@
 from .files import SUPPORTED_EXTENSIONS, load_files_from_dir, read_local_file
 from .transforms import FileTransform
 from .hamilton_nodes import directories_loaded, load_summary
-from .load import load_directories_into_tables, load_directory_into_table
+from .load import (
+    load_directories_into_tables,
+    load_directory_into_table,
+    load_file_into_table,
+    load_files_into_tables,
+)
 from .pipeline import build_driver, ingestion_overrides, run_load_directories_into_tables
 from .transforms import (
     CastDateColumnTransform,
@@ -40,6 +45,8 @@ __all__ = [
     "ingestion_overrides",
     "load_directories_into_tables",
     "load_directory_into_table",
+    "load_file_into_table",
+    "load_files_into_tables",
     "load_files_from_dir",
     "load_summary",
     "read_local_file",
