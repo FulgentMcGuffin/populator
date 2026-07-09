@@ -2,14 +2,46 @@
 
 Tools for loading local files into SQLite or DuckDB, with optional sourcing (S3, Kaggle) and derived analytics for yield-curve studio (YCS) data.
 
-The [`src/ingestion/`](src/ingestion/) module can also be used from **Claude or Cursor** via an MCP server: preview files, apply transforms, and populate databases through natural-language tool calls.
+The ingestion module can also be used from **Claude or Cursor** via an MCP server (`populator-mcp`): preview files, apply transforms, and populate databases through natural-language tool calls.
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run all commands from the repository root.
+## Installation
+
+Install from GitHub (includes the `populator-mcp` command when you add the `mcp` extra):
 
 ```bash
-uv sync                  # install runtime dependencies
-uv sync --extra dev      # include pytest for tests
-uv sync --extra mcp      # include FastMCP server for Claude/Cursor
+# Recommended: install globally with uv (puts populator-mcp on your PATH)
+uv tool install "populator[mcp] @ git+https://github.com/FulgentMcGuffin/populator.git"
+
+# Or into the active environment with pip
+pip install "populator[mcp] @ git+https://github.com/FulgentMcGuffin/populator.git"
+
+# Or run on demand without installing (uv downloads and caches the package)
+uvx --from "populator[mcp] @ git+https://github.com/FulgentMcGuffin/populator.git" populator-mcp
+```
+
+Verify the MCP server entry point:
+
+```bash
+populator-mcp
+```
+
+The process waits on stdio for an MCP client (Claude Desktop, Cursor, etc.) — that is expected. Stop it with Ctrl+C when testing from a terminal.
+
+### Development (clone the repo)
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Clone and install in editable mode from the repository root:
+
+```bash
+git clone https://github.com/FulgentMcGuffin/populator.git
+cd populator
+uv sync --extra dev --extra mcp
+uv run populator-mcp
+```
+
+```bash
+uv sync                  # runtime dependencies (editable install)
+uv sync --extra dev      # include pytest
+uv sync --extra mcp      # include FastMCP for populator-mcp
 ```
 
 ## Project layout
@@ -197,31 +229,48 @@ uv run python src/populate_worldbank_db.py
 
 ## MCP server (Claude / Cursor)
 
-The MCP server wraps [`src/ingestion/`](src/ingestion/) so Claude can load local CSV/parquet/feather files into SQLite or DuckDB, with optional transforms applied before write.
+The `populator-mcp` command exposes [`src/ingestion/`](src/ingestion/) so Claude can load local CSV/parquet/feather files into SQLite or DuckDB, with optional transforms applied before write.
 
-### Install and connect
+Requires the package with the **`mcp` extra** (see [Installation](#installation)).
 
-```bash
-uv sync --extra mcp
-```
+### Connect the server
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
+After `uv tool install ...` (or `pip install ...`), point your MCP client at the installed command:
+
+**Claude Desktop** — `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "populator": {
-      "command": "uv",
-      "args": ["run", "--extra", "mcp", "python", "src/populator_mcp/server.py"],
-      "cwd": "D:\\Code\\populator"
+      "command": "populator-mcp"
     }
   }
 }
 ```
 
-**Cursor** — add the same server under **Settings → MCP** (command + args + `cwd`).
+**Without a global install** — use `uvx` so the package is fetched from GitHub automatically:
+
+```json
+{
+  "mcpServers": {
+    "populator": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "populator[mcp] @ git+https://github.com/FulgentMcGuffin/populator.git",
+        "populator-mcp"
+      ]
+    }
+  }
+}
+```
+
+**Cursor** — add the same entry under **Settings → MCP** (use `command` + `args` as above).
 
 Restart the client after saving. The server uses stdio transport and stays running while the client is connected.
+
+> **Note:** MCP tools read and write **your local files and database paths**. Paths in the examples below are illustrative — substitute your own CSV directories and `.duckdb` / `.sqlite` output locations.
 
 ### Tools
 
@@ -242,27 +291,29 @@ Resource: `populator://transforms` — JSON catalog of transform types and prese
 
 After connecting the MCP server, you can ask Claude something like:
 
-> Load the World Bank indicator CSVs into DuckDB at `D:\data\duckdb\world_bank.duckdb`. Preview the indicators file first, then create tables `topic_mapping` and `indicators`.
+> Load my World Bank indicator CSVs into DuckDB. Preview the indicators file first, then create tables `topic_mapping` and `indicators`.
 
 Claude would typically:
 
 1. Call **`list_transforms`** (optional — no transforms needed for World Bank)
-2. Call **`preview_file`** on `D:\data\other\kaggle\world_bank_indicators\world_bank_indicators_long.csv`
-3. Call **`populate_from_files`**:
+2. Call **`preview_file`** on your indicators CSV
+3. Call **`populate_from_files`** (paths are whatever exists on your machine):
 
 ```json
 {
   "backend": "duckdb",
-  "db_path": "D:\\data\\duckdb\\world_bank.duckdb",
+  "db_path": "/path/to/world_bank.duckdb",
   "table_files": {
-    "topic_mapping": "D:\\data\\other\\kaggle\\world_bank_indicators\\indicator_topic_mapping.csv",
-    "indicators": "D:\\data\\other\\kaggle\\world_bank_indicators\\world_bank_indicators_long.csv"
+    "topic_mapping": "/path/to/indicator_topic_mapping.csv",
+    "indicators": "/path/to/world_bank_indicators_long.csv"
   },
   "overwrite": true
 }
 ```
 
 4. Call **`list_db_tables`** to confirm `topic_mapping` and `indicators` exist
+
+On Windows, use backslashes or doubled backslashes in JSON paths, e.g. `D:\\data\\duckdb\\world_bank.duckdb`.
 
 ### Example: load equity CSVs with transforms
 
@@ -271,9 +322,9 @@ Equity EOD data needs transforms (melt wide columns, parse dates, etc.). Use the
 ```json
 {
   "backend": "duckdb",
-  "db_path": "D:\\data\\duckdb\\equity_eod_data.duckdb",
+  "db_path": "/path/to/equity_eod_data.duckdb",
   "table_directories": {
-    "equity_eod": "D:\\data\\equity\\eod"
+    "equity_eod": "/path/to/equity/csv/dir"
   },
   "extensions": [".csv"],
   "preset": "equity",
