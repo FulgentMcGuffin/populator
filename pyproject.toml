@@ -21,9 +21,13 @@ dependencies = [
     "tqdm>=4.68.3",
 ]
 
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+]
+mcp = [
+    "fastmcp>=2.0",
 ]
 
 [tool.pytest.ini_options]

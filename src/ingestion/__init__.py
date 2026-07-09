@@ -10,6 +10,14 @@ from .load import (
     load_files_into_tables,
 )
 from .pipeline import build_driver, ingestion_overrides, run_load_directories_into_tables
+from .transform_registry import (
+    TRANSFORM_CATALOG,
+    TRANSFORM_PRESETS,
+    build_transform,
+    build_transforms,
+    describe_transforms,
+    serialize_transforms,
+)
 from .transforms import (
     CastDateColumnTransform,
     CastNumericStringColumnsTransform,
@@ -27,6 +35,8 @@ from .transforms import (
 
 __all__ = [
     "SUPPORTED_EXTENSIONS",
+    "TRANSFORM_CATALOG",
+    "TRANSFORM_PRESETS",
     "CastDateColumnTransform",
     "CastNumericStringColumnsTransform",
     "FileSourceTransform",
@@ -40,7 +50,10 @@ __all__ = [
     "apply_transforms",
     "build_driver",
     "build_file_transform",
+    "build_transform",
+    "build_transforms",
     "compose_transforms",
+    "describe_transforms",
     "directories_loaded",
     "ingestion_overrides",
     "load_directories_into_tables",
@@ -51,4 +64,5 @@ __all__ = [
     "load_summary",
     "read_local_file",
     "run_load_directories_into_tables",
+    "serialize_transforms",
 ]

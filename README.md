@@ -2,11 +2,14 @@
 
 Tools for loading local files into SQLite or DuckDB, with optional sourcing (S3, Kaggle) and derived analytics for yield-curve studio (YCS) data.
 
+The [`src/ingestion/`](src/ingestion/) module can also be used from **Claude or Cursor** via an MCP server: preview files, apply transforms, and populate databases through natural-language tool calls.
+
 This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Run all commands from the repository root.
 
 ```bash
 uv sync                  # install runtime dependencies
 uv sync --extra dev      # include pytest for tests
+uv sync --extra mcp      # include FastMCP server for Claude/Cursor
 ```
 
 ## Project layout
@@ -14,11 +17,13 @@ uv sync --extra dev      # include pytest for tests
 | Path | Role |
 |---|---|
 | [`src/backends/`](src/backends/) | SQLite / DuckDB read-write backends (`DataSink`) |
-| [`src/ingestion/`](src/ingestion/) | Generic local-file → database loading (parquet, CSV, feather) with optional Polars transforms and a Hamilton DAG |
+| [`src/ingestion/`](src/ingestion/) | Generic local-file → database loading (parquet, CSV, feather) with optional Polars transforms, a transform registry for MCP/JSON, and a Hamilton DAG |
+| [`src/populator_mcp/`](src/populator_mcp/) | MCP server exposing ingestion, transforms, and database load to Claude / Cursor |
 | [`src/ycs/`](src/ycs/) | YCS-specific correlation pipeline (Hamilton DAG on top of `ingestion`) |
 | [`src/download_ycs.py`](src/download_ycs.py) | Download YCS parquet from S3 |
 | [`src/populate_ycs_db.py`](src/populate_ycs_db.py) | Populate YCS data into SQLite and DuckDB |
 | [`src/populate_equity_db.py`](src/populate_equity_db.py) | Populate equity EOD CSVs into SQLite and DuckDB |
+| [`src/populate_worldbank_db.py`](src/populate_worldbank_db.py) | Populate World Bank CSVs into SQLite and DuckDB |
 | [`src/create_corr_files.py`](src/create_corr_files.py) | Standalone YCS correlation pickle generation |
 | [`tests/`](tests/) | `pytest` tests for ingestion and transforms |
 
@@ -84,9 +89,12 @@ run_load_directories_into_tables(
 | `FileSourceTransform` | Add `file_source` with the file's absolute path |
 | `FilenamePartTransform` | Add a column from a token of the filename stem (split on a separator) |
 | `MapColumnTransform` | Map an existing column into a new column via a callable |
+| `CastNumericStringColumnsTransform` | Parse string columns as numbers (e.g. CSV scientific notation `4e+05`) |
 | `CastDateColumnTransform` | Cast a column to Polars `Date` |
 
 Transforms are only applied when passed via `transforms=[...]` or the legacy `file_transform=` callable.
+
+For MCP and other JSON-driven callers, the same transforms are described in [`transform_registry.py`](src/ingestion/transform_registry.py) as serializable step objects (see [MCP server](#mcp-server-claude--cursor) below).
 
 Hamilton drivers use **`overrides=`** (not `inputs=`) when calling `dr.execute()`.
 
@@ -173,6 +181,124 @@ uv run python src/populate_equity_db.py
 
 ---
 
+## 5. Populate World Bank data
+
+[`src/populate_worldbank_db.py`](src/populate_worldbank_db.py) loads two CSV files into SQLite and DuckDB:
+
+- **DuckDB:** `D:\data\duckdb\world_bank.duckdb`
+- **SQLite:** `D:\data\sqlite\world_bank.sqlite`
+- **Tables:** `topic_mapping`, `indicators`
+
+```bash
+uv run python src/populate_worldbank_db.py
+```
+
+---
+
+## MCP server (Claude / Cursor)
+
+The MCP server wraps [`src/ingestion/`](src/ingestion/) so Claude can load local CSV/parquet/feather files into SQLite or DuckDB, with optional transforms applied before write.
+
+### Install and connect
+
+```bash
+uv sync --extra mcp
+```
+
+**Claude Desktop** — add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "populator": {
+      "command": "uv",
+      "args": ["run", "--extra", "mcp", "python", "src/populator_mcp/server.py"],
+      "cwd": "D:\\Code\\populator"
+    }
+  }
+}
+```
+
+**Cursor** — add the same server under **Settings → MCP** (command + args + `cwd`).
+
+Restart the client after saving. The server uses stdio transport and stays running while the client is connected.
+
+### Tools
+
+| Tool | Purpose |
+|---|---|
+| `list_transforms` | Transform types, JSON parameters, and presets (`none`, `equity`) |
+| `preview_file` | Sample rows before/after applying transforms |
+| `populate_from_files` | Load a file → table map (World Bank style) |
+| `populate_from_directories` | Load a directory → table map (equity/YCS style) |
+| `list_db_tables` | List tables in a database |
+| `describe_db_table` | Column schema for one table |
+
+Resource: `populator://transforms` — JSON catalog of transform types and presets.
+
+`MapColumnTransform` is not exposed via MCP (it requires a Python callable).
+
+### Example: load World Bank CSVs via Claude
+
+After connecting the MCP server, you can ask Claude something like:
+
+> Load the World Bank indicator CSVs into DuckDB at `D:\data\duckdb\world_bank.duckdb`. Preview the indicators file first, then create tables `topic_mapping` and `indicators`.
+
+Claude would typically:
+
+1. Call **`list_transforms`** (optional — no transforms needed for World Bank)
+2. Call **`preview_file`** on `D:\data\other\kaggle\world_bank_indicators\world_bank_indicators_long.csv`
+3. Call **`populate_from_files`**:
+
+```json
+{
+  "backend": "duckdb",
+  "db_path": "D:\\data\\duckdb\\world_bank.duckdb",
+  "table_files": {
+    "topic_mapping": "D:\\data\\other\\kaggle\\world_bank_indicators\\indicator_topic_mapping.csv",
+    "indicators": "D:\\data\\other\\kaggle\\world_bank_indicators\\world_bank_indicators_long.csv"
+  },
+  "overwrite": true
+}
+```
+
+4. Call **`list_db_tables`** to confirm `topic_mapping` and `indicators` exist
+
+### Example: load equity CSVs with transforms
+
+Equity EOD data needs transforms (melt wide columns, parse dates, etc.). Use the built-in **`equity`** preset:
+
+```json
+{
+  "backend": "duckdb",
+  "db_path": "D:\\data\\duckdb\\equity_eod_data.duckdb",
+  "table_directories": {
+    "equity_eod": "D:\\data\\equity\\eod"
+  },
+  "extensions": [".csv"],
+  "preset": "equity",
+  "csv_infer_schema_length": 0,
+  "overwrite": true
+}
+```
+
+Or pass explicit transform steps (same pipeline as [`populate_equity_db.py`](src/populate_equity_db.py)):
+
+```json
+{
+  "transforms": [
+    {"type": "cast_numeric_string_columns", "exclude": ["Index"]},
+    {"type": "prefixed_melt", "separator": ".", "group_column": "Stock", "exclude": ["Index"]},
+    {"type": "filename_part", "column": "EqIndex", "separator": "_", "part_index": 0},
+    {"type": "file_source"},
+    {"type": "cast_date_column", "column": "Index", "format": "YYYY-mm-dd HH:MM:SS"}
+  ]
+}
+```
+
+Use **`preview_file`** with the same `preset` or `transforms` to inspect output before calling **`populate_from_directories`**.
+
+---
 ## Typical YCS workflow
 
 ```bash
