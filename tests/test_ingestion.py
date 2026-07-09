@@ -57,6 +57,30 @@ def test_load_files_from_dir_concatenates_with_source_column(data_dir: Path) -> 
 
 
 @pytest.mark.parametrize("source_class", [SQLiteSource, DuckDBSource])
+def test_create_table_from_polars_with_reserved_column_name(
+    source_class: type,
+) -> None:
+    from datetime import date
+
+    df = pl.DataFrame(
+        {
+            "Index": [date(2024, 1, 1), date(2024, 1, 2)],
+            "Stock": ["AC.PA", "AI.PA"],
+            "Volume": [400000.0, 1000.0],
+        }
+    )
+
+    with source_class(":memory:", read_only=False) as db:
+        created = db.create_table_from_polars("equity_eod", df, overwrite_if_exists=True)
+        rows = db.execute('SELECT "Index", Stock, Volume FROM equity_eod ORDER BY Stock')
+
+    assert created is True
+    assert len(rows) == 2
+    assert rows[0]["Stock"] == "AC.PA"
+    assert rows[0]["Volume"] == 400000.0
+
+
+@pytest.mark.parametrize("source_class", [SQLiteSource, DuckDBSource])
 def test_load_directory_into_table_in_memory(
     source_class: type,
     data_dir: Path,

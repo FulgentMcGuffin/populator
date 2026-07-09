@@ -31,6 +31,12 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 load_dotenv(Path(__file__).resolve().parents[2] / ".secrets", override=False)
 
 
+def _quote_ident(name: str) -> str:
+    """Quote an SQL identifier for SQLite (handles reserved words like ``Index``)."""
+    escaped = name.replace('"', '""')
+    return f'"{escaped}"'
+
+
 def _resolve_default_db_path() -> tuple[str, str]:
     """Resolve ``(directory, filename)`` for the default DB from ``SQLITEDB_PATH``.
 
@@ -225,7 +231,7 @@ class SQLiteSource(DataSink):
     ) -> bool:
         self._require_writable()
         columns_sql = ",\n    ".join(
-            f"{col} {definition}" for col, definition in schema.items()
+            f"{_quote_ident(col)} {definition}" for col, definition in schema.items()
         )
         conn = self._conn()
         already_exists = (
@@ -240,9 +246,11 @@ class SQLiteSource(DataSink):
             return False
 
         if overwrite_if_exists:
-            conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+            conn.execute(f"DROP TABLE IF EXISTS {_quote_ident(table_name)}")
 
-        conn.execute(f"CREATE TABLE {table_name} (\n    {columns_sql}\n);")
+        conn.execute(
+            f"CREATE TABLE {_quote_ident(table_name)} (\n    {columns_sql}\n);"
+        )
         conn.commit()
         return True
 
@@ -252,11 +260,11 @@ class SQLiteSource(DataSink):
         columns: list[str] | None = None,
         where: dict | None = None,
     ) -> list[dict]:
-        cols_sql = ", ".join(columns) if columns else "*"
-        query = f"SELECT {cols_sql} FROM {table_name}"
+        cols_sql = ", ".join(_quote_ident(col) for col in columns) if columns else "*"
+        query = f"SELECT {cols_sql} FROM {_quote_ident(table_name)}"
         params: list = []
         if where:
-            conditions = " AND ".join(f"{col} = ?" for col in where)
+            conditions = " AND ".join(f"{_quote_ident(col)} = ?" for col in where)
             query += f" WHERE {conditions}"
             params = list(where.values())
         cursor = self._conn().execute(query, params)
@@ -272,9 +280,12 @@ class SQLiteSource(DataSink):
             data = [data]
         if not data:
             return 0
-        columns_sql = ", ".join(data[0].keys())
+        columns_sql = ", ".join(_quote_ident(col) for col in data[0].keys())
         placeholders = ", ".join("?" for _ in data[0])
-        query = f"INSERT INTO {table_name} ({columns_sql}) VALUES ({placeholders})"
+        query = (
+            f"INSERT INTO {_quote_ident(table_name)} ({columns_sql}) "
+            f"VALUES ({placeholders})"
+        )
         conn = self._conn()
         conn.executemany(query, [list(row.values()) for row in data])
         conn.commit()
@@ -287,9 +298,12 @@ class SQLiteSource(DataSink):
         where: dict,
     ) -> int:
         self._require_writable()
-        set_clause = ", ".join(f"{col} = ?" for col in data)
-        where_clause = " AND ".join(f"{col} = ?" for col in where)
-        query = f"UPDATE {table_name} SET {set_clause} WHERE {where_clause}"
+        set_clause = ", ".join(f"{_quote_ident(col)} = ?" for col in data)
+        where_clause = " AND ".join(f"{_quote_ident(col)} = ?" for col in where)
+        query = (
+            f"UPDATE {_quote_ident(table_name)} SET {set_clause} "
+            f"WHERE {where_clause}"
+        )
         params = list(data.values()) + list(where.values())
         conn = self._conn()
         cursor = conn.execute(query, params)
@@ -302,8 +316,8 @@ class SQLiteSource(DataSink):
         where: dict,
     ) -> int:
         self._require_writable()
-        where_clause = " AND ".join(f"{col} = ?" for col in where)
-        query = f"DELETE FROM {table_name} WHERE {where_clause}"
+        where_clause = " AND ".join(f"{_quote_ident(col)} = ?" for col in where)
+        query = f"DELETE FROM {_quote_ident(table_name)} WHERE {where_clause}"
         conn = self._conn()
         cursor = conn.execute(query, list(where.values()))
         conn.commit()
