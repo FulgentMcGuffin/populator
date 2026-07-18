@@ -17,6 +17,7 @@ from .config import (
 from .workflow import (
     build_window_corr_frames,
     corr_dir_path,
+    empty_rate_tables,
     load_rate_tables,
     save_window_corr,
 )
@@ -58,8 +59,24 @@ def rate_tables(
     source_class: type[Any],
     db_path: str | None,
     directories_loaded: dict[str, bool],
+    create_corr_files: bool,
+    populate_db_corr_from_files: bool,
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    """Read all rate tables from the database."""
+    """Read rate tables after optional directory load completes."""
+    if not create_corr_files and not populate_db_corr_from_files:
+        return empty_rate_tables()
+
+    if directories_loaded:
+        failed = [
+            table_name
+            for table_name, loaded in directories_loaded.items()
+            if not loaded
+        ]
+        if failed:
+            raise ValueError(
+                f"Directory load did not create tables: {', '.join(failed)}"
+            )
+
     return load_rate_tables(source_class, db_path)
 
 
@@ -174,8 +191,14 @@ def pipeline_summary(
     zero_rates: pl.DataFrame,
     saved_window_corr: None,
     directories_loaded: dict[str, bool],
-) -> dict[str, int]:
+    create_corr_files: bool,
+    populate_db_corr_from_files: bool,
+) -> dict[str, int | dict[str, bool]]:
     """Terminal node for the full populate workflow."""
-    print(zero_rates.shape)
-    print(zero_rates[-10:])
-    return {"zero_rates_rows": zero_rates.height}
+    if create_corr_files or populate_db_corr_from_files:
+        print(zero_rates.shape)
+        print(zero_rates[-10:])
+    return {
+        "zero_rates_rows": zero_rates.height,
+        "directories_loaded": directories_loaded,
+    }

@@ -158,7 +158,7 @@ uv run python src/download_ycs.py
 
 ## 2. Populate YCS into SQLite and DuckDB
 
-[`src/populate_ycs_db.py`](src/populate_ycs_db.py) resolves database paths from `SQLITEDB_PATH` and `DUCKDB_PATH` in `.env` and runs the shared YCS Hamilton pipeline for both backends.
+[`src/populate_ycs_db.py`](src/populate_ycs_db.py) resolves database paths from `SQLITEDB_PATH` and `DUCKDB_PATH` in `.env` and runs the shared YCS Hamilton pipeline for both backends. Pass at least one flag (for example `--load-from-files`) to perform work.
 
 ```bash
 # Load parquet only

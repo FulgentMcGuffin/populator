@@ -21,7 +21,7 @@ from ycs.pipeline import run_populate_pipeline
 
 DATABASE_TARGETS = (
     (SQLiteSource, "sqlite"),
-    (DuckDBSource, "duckdb"),
+    # (DuckDBSource, "duckdb"),
 )
 
 

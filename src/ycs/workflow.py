@@ -8,6 +8,8 @@ from typing import Any
 
 import polars as pl
 
+from backends.base import QueryError
+
 from .cli import backend_label
 from .config import (
     DEFAULT_CORRELATION_WINDOW_SIZES,
@@ -20,6 +22,7 @@ from .correlations import get_corr_matrix
 __all__ = [
     "build_window_corr_frames",
     "corr_dir_path",
+    "empty_rate_tables",
     "load_rate_tables",
     "save_window_corr",
 ]
@@ -30,7 +33,16 @@ def load_rate_tables(
     db_path: str | None = None,
 ) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """Read zero rates, par rates, and spot FX from the database."""
+    required_tables = ("zero_rates", "par_rates", "spotfx")
     with source_class(db_path, read_only=False) as db:
+        existing = set(db.list_tables())
+        missing = [name for name in required_tables if name not in existing]
+        if missing:
+            raise QueryError(
+                f"Missing rate tables: {', '.join(missing)}. "
+                "Run with --load-from-files first or populate the database."
+            )
+
         zero_rates = pl.DataFrame(db.execute("SELECT * FROM zero_rates")).with_columns(
             pl.col("date").str.to_date()
         )
@@ -41,6 +53,12 @@ def load_rate_tables(
             pl.col("date").str.to_date()
         )
     return zero_rates, par_rates, spotfx_rates
+
+
+def empty_rate_tables() -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    """Return empty frames when correlation steps are not requested."""
+    empty = pl.DataFrame()
+    return empty, empty, empty
 
 
 def corr_dir_path() -> str:
