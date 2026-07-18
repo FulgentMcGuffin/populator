@@ -14,7 +14,7 @@ from ycs.pipeline import run_populate_pipeline
 def test_run_populate_pipeline_without_flags_skips_rate_tables(
     tmp_path: Path,
 ) -> None:
-    db_path = tmp_path / "ycs_data.db"
+    db_path = tmp_path / "ycs_data.sqlite"
     args = argparse.Namespace(
         load_from_files=False,
         create_corr_files=False,
@@ -35,7 +35,7 @@ def test_run_populate_pipeline_without_flags_skips_rate_tables(
 def test_run_populate_pipeline_corr_flags_require_rate_tables(
     tmp_path: Path,
 ) -> None:
-    db_path = tmp_path / "ycs_data.db"
+    db_path = tmp_path / "ycs_data.sqlite"
     args = argparse.Namespace(
         load_from_files=False,
         create_corr_files=True,
