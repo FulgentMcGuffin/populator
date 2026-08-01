@@ -1,5 +1,7 @@
 # Populator
 
+⭐ If you find this repository useful, please **consider starring it**.
+
 Tools for loading local files into SQLite or DuckDB, with optional sourcing (S3, Kaggle) and derived analytics for yield-curve studio (YCS) data.
 
 The ingestion module can also be used from **Claude or Cursor** via an MCP server (`populator-mcp`): preview files, apply transforms, and populate databases through natural-language tool calls.
