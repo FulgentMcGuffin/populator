@@ -1,0 +1,100 @@
+symbol,security,sector,industry,source
+ABF.L,Associated British Foods,Consumer Staples,Food Products,general_knowledge
+ADM.L,Admiral Group,Financials,Insurance,general_knowledge
+AHT.L,Ashtead Group,Industrials,Industrial/Equipment Rental,general_knowledge
+ANTO.L,Antofagasta,Materials,Mining (Copper),general_knowledge
+AUTO.L,Auto Trader Group,Communication Services,Internet/Online Classifieds,general_knowledge
+AV.L,Aviva,Financials,Insurance,general_knowledge
+AZN.L,AstraZeneca,Health Care,Pharmaceuticals,general_knowledge
+BA.L,BAE Systems,Industrials,Aerospace & Defense,general_knowledge
+BARC.L,Barclays,Financials,Banking,general_knowledge
+BATS.L,British American Tobacco,Consumer Staples,Tobacco,general_knowledge
+BDEV.L,Barratt Developments,Consumer Discretionary,Homebuilding,general_knowledge
+BHP.L,BHP Group (BHP Billiton),Materials,Diversified Mining,general_knowledge
+BKG.L,Berkeley Group Holdings,Consumer Discretionary,Homebuilding,general_knowledge
+BLND.L,British Land Company,Real Estate,Diversified REIT,general_knowledge
+BNZL.L,Bunzl,Industrials,Distribution,general_knowledge
+BP.L,BP plc,Energy,Integrated Oil & Gas,general_knowledge
+BRBY.L,Burberry Group,Consumer Discretionary,Apparel & Luxury Goods,general_knowledge
+BT.A.L,BT Group,Communication Services,Telecommunications,general_knowledge
+CCH.L,Coca-Cola HBC,Consumer Staples,Beverages,general_knowledge
+CCL.L,Carnival Corporation,Consumer Discretionary,Cruise Lines,general_knowledge
+CNA.L,Centrica,Utilities,Multi-Utilities,general_knowledge
+CPG.L,Compass Group,Consumer Discretionary,Restaurants/Catering,general_knowledge
+CRDA.L,Croda International,Materials,Specialty Chemicals,general_knowledge
+CRH.L,CRH plc,Materials,Building Materials,general_knowledge
+DCC.L,DCC plc,Industrials,Distribution,general_knowledge
+DGE.L,Diageo,Consumer Staples,Beverages,general_knowledge
+DLG.L,Direct Line Insurance Group,Financials,Insurance,general_knowledge
+EVR.L,Evraz plc,Materials,Steel,general_knowledge
+EXPN.L,Experian,Industrials,Business/Credit Information Services,general_knowledge
+EZJ.L,easyJet,Industrials,Airlines,general_knowledge
+FERG.L,Ferguson plc (formerly Wolseley),Industrials,Distribution,general_knowledge
+FRES.L,Fresnillo plc,Materials,Precious Metals Mining (Silver/Gold),general_knowledge
+GLEN.L,Glencore,Materials,Diversified Mining & Commodities Trading,general_knowledge
+GSK.L,GlaxoSmithKline,Health Care,Pharmaceuticals,general_knowledge
+GVC.L,GVC Holdings (now Entain),Consumer Discretionary,Gambling,general_knowledge
+HIK.L,Hikma Pharmaceuticals,Health Care,Pharmaceuticals,general_knowledge
+HL.L,Hargreaves Lansdown,Financials,Asset Management/Brokerage,general_knowledge
+HLMA.L,Halma plc,Industrials,Safety & Health Technology,general_knowledge
+HSBA.L,HSBC Holdings,Financials,Banking,general_knowledge
+HSX.L,Hiscox Ltd,Financials,Insurance,general_knowledge
+IAG.L,International Consolidated Airlines Group,Industrials,Airlines,general_knowledge
+IHG.L,InterContinental Hotels Group,Consumer Discretionary,Hotels,general_knowledge
+III.L,3i Group,Financials,Private Equity/Investment Trust,general_knowledge
+IMB.L,Imperial Brands (Imperial Tobacco),Consumer Staples,Tobacco,general_knowledge
+INF.L,Informa plc,Communication Services,Publishing/Events,general_knowledge
+ITRK.L,Intertek Group,Industrials,Testing/Inspection/Certification,general_knowledge
+ITV.L,ITV plc,Communication Services,Broadcasting,general_knowledge
+JMAT.L,Johnson Matthey,Materials,Specialty Chemicals/Catalysts,general_knowledge
+KGF.L,Kingfisher plc,Consumer Discretionary,Home Improvement Retail,general_knowledge
+LAND.L,Land Securities Group,Real Estate,Diversified REIT,general_knowledge
+LGEN.L,Legal & General Group,Financials,Insurance,general_knowledge
+LLOY.L,Lloyds Banking Group,Financials,Banking,general_knowledge
+LSE.L,London Stock Exchange Group,Financials,Financial Exchanges,general_knowledge
+MCRO.L,Micro Focus International,Information Technology,Software,general_knowledge
+MKS.L,Marks & Spencer Group,Consumer Discretionary,Retail,general_knowledge
+MNDI.L,Mondi plc,Materials,Paper/Packaging,general_knowledge
+MRO.L,Melrose Industries,Industrials,Diversified Industrials,general_knowledge
+MRW.L,Wm Morrison Supermarkets,Consumer Staples,Food Retail,general_knowledge
+NG.L,National Grid plc,Utilities,Electric/Gas Utilities,general_knowledge
+NMC.L,NMC Health,Health Care,Hospitals/Healthcare Facilities,general_knowledge
+NXT.L,Next plc,Consumer Discretionary,Apparel Retail,general_knowledge
+OCDO.L,Ocado Group,Consumer Discretionary,Online Grocery/E-commerce,general_knowledge
+PPB.L,Paddy Power Betfair (now Flutter Entertainment),Consumer Discretionary,Gambling,general_knowledge
+PRU.L,Prudential plc,Financials,Insurance,general_knowledge
+PSN.L,Persimmon plc,Consumer Discretionary,Homebuilding,general_knowledge
+PSON.L,Pearson plc,Communication Services,Education/Publishing,general_knowledge
+RB.L,Reckitt Benckiser Group,Consumer Staples,Household Products,general_knowledge
+RBS.L,Royal Bank of Scotland Group (now NatWest Group),Financials,Banking,general_knowledge
+RDSA.L,Royal Dutch Shell (A shares),Energy,Integrated Oil & Gas,general_knowledge
+REL.L,RELX plc,Communication Services,Publishing/Information Services,general_knowledge
+RIO.L,Rio Tinto,Materials,Diversified Mining,general_knowledge
+RMV.L,Rightmove plc,Communication Services,Internet/Online Real Estate Classifieds,general_knowledge
+RR.L,Rolls-Royce Holdings,Industrials,Aerospace & Defense,general_knowledge
+RSA.L,RSA Insurance Group,Financials,Insurance,general_knowledge
+RTO.L,Rentokil Initial,Industrials,Commercial Services (Pest Control/Hygiene),general_knowledge
+SBRY.L,J Sainsbury plc,Consumer Staples,Food Retail,general_knowledge
+SDR.L,Schroders plc,Financials,Asset Management,general_knowledge
+SGE.L,Sage Group,Information Technology,Software,general_knowledge
+SGRO.L,Segro plc,Real Estate,Industrial REIT,general_knowledge
+SKG.L,Smurfit Kappa Group,Materials,Packaging,general_knowledge
+SLA.L,Standard Life Aberdeen (now abrdn),Financials,Asset Management,general_knowledge
+SMDS.L,DS Smith plc,Materials,Packaging,general_knowledge
+SMIN.L,Smiths Group,Industrials,Diversified Industrials,general_knowledge
+SMT.L,Scottish Mortgage Investment Trust,Financials,Investment Trust,general_knowledge
+SN.L,Smith & Nephew,Health Care,Medical Devices,general_knowledge
+SPX.L,Spirax-Sarco Engineering,Industrials,Industrial Machinery,general_knowledge
+SSE.L,SSE plc,Utilities,Electric Utilities,general_knowledge
+STAN.L,Standard Chartered plc,Financials,Banking,general_knowledge
+STJ.L,St. James's Place plc,Financials,Asset Management/Wealth Management,general_knowledge
+SVT.L,Severn Trent plc,Utilities,Water Utilities,general_knowledge
+TSCO.L,Tesco plc,Consumer Staples,Food Retail,general_knowledge
+TUI.L,TUI AG,Consumer Discretionary,Travel/Tourism,general_knowledge
+TW.L,Taylor Wimpey,Consumer Discretionary,Homebuilding,general_knowledge
+ULVR.L,Unilever plc,Consumer Staples,Household/Personal Products,general_knowledge
+UU.L,United Utilities Group,Utilities,Water Utilities,general_knowledge
+VOD.L,Vodafone Group,Communication Services,Telecommunications,general_knowledge
+WG.L,John Wood Group,Energy,Oil & Gas Services,general_knowledge
+WPP.L,WPP plc,Communication Services,Advertising,general_knowledge
+WTB.L,Whitbread plc,Consumer Discretionary,Hotels/Restaurants,general_knowledge

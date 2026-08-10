@@ -1,0 +1,43 @@
+history_id,stock,change_date,change_type,field_changed,old_value,new_value,description,source
+1,ADS.DE,1998-06-22,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Bayerische Hypotheken- und Wechselbank (merger formed HypoVereinsbank).",Wikipedia: DAX
+2,BEI.DE,2008-12-22,INDEX_ADD,index_membership,,DAX30,Added to DAX (fast-exit replacement for Continental).,Wikipedia: DAX
+3,BEI.DE,2021-03-22,INDEX_REMOVE,index_membership,DAX30,,Removed from DAX (inadequate market capitalisation); replaced by Siemens Energy. After dataset coverage window.,Wikipedia: DAX
+4,BEI.DE,2021-10-29,INDEX_ADD,index_membership,,DAX30,"Re-added to DAX, replacing Deutsche Wohnen. After dataset coverage window.",Wikipedia: DAX
+5,CON.DE,1996-09-23,INDEX_REMOVE,index_membership,DAX30,,Removed from DAX; replaced by Münchener Rück.,Wikipedia: DAX
+6,CON.DE,2003-09-22,INDEX_ADD,index_membership,,DAX30,"Re-added to DAX (replaced MLP, inadequate free float/market cap).",Wikipedia: DAX
+7,CON.DE,2008-12-22,INDEX_REMOVE,index_membership,DAX30,,"Removed from DAX (fast-exit, inadequate free-float market capitalisation); replaced by Beiersdorf.",Wikipedia: DAX
+8,CON.DE,2012-09-24,INDEX_ADD,index_membership,,DAX30,"Re-added to DAX (replaced MAN, inadequate free-float capitalisation after VW acquisition of MAN). Continuous member through end of dataset window (2019-02-11).",Wikipedia: DAX
+9,DB1.DE,2002-12-23,INDEX_ADD,index_membership,,DAX30,Added to DAX (fast-exit replacement for Epcos).,Wikipedia: DAX
+10,DPW.DE,2001-03-19,INDEX_ADD,index_membership,,DAX30,"Added to DAX at IPO, replacing KarstadtQuelle.",Wikipedia: DAX
+11,DTE.DE,1996-11-18,INDEX_ADD,index_membership,,DAX30,"Added to DAX at IPO, replacing Metallgesellschaft.",Wikipedia: DAX
+12,EOAN.DE,2000-06-19,INDEX_ADD,index_membership,,DAX30,"Added to DAX; formed by Veba/Viag merger, replaced Veba.",Wikipedia: DAX
+13,FME.DE,1999-09-20,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Hoechst (following Hoechst/Rhone-Poulenc/Aventis merger).",Wikipedia: DAX
+14,FME.DE,2023-03-20,INDEX_REMOVE,index_membership,DAX30,,"Removed from DAX, replaced by Rheinmetall. After dataset coverage window.",Wikipedia: DAX
+15,HEI.DE,2010-06-21,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Salzgitter (inadequate market capitalisation).",Wikipedia: DAX
+16,IFX.DE,2000-06-19,INDEX_ADD,index_membership,,DAX30,Added to DAX (replaced VIAG in the Veba/Viag-E.ON merger reshuffle).,Wikipedia: DAX
+17,IFX.DE,2009-09-21,INDEX_ADD,index_membership,,DAX30,"Re-added to DAX, replacing Hannover Re. Exact date of the intervening removal (circa 2003) not found in source.",Wikipedia: DAX
+18,LHA.DE,2020-06-22,INDEX_REMOVE,index_membership,DAX30,,"Removed from DAX, replaced by Deutsche Wohnen. After dataset coverage window.",Wikipedia: DAX
+19,LIN.DE,2023-02-27,INDEX_REMOVE,index_membership,DAX30,,Removed from DAX following delisting of Linde plc from the Frankfurt exchange. After dataset coverage window.,Wikipedia: DAX
+20,MRK.DE,2007-06-18,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Altana (after Altana's sale of Nycomed reduced its market cap).",Wikipedia: DAX
+21,MUV2.DE,1996-09-23,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Continental.",Wikipedia: DAX
+22,SAP.DE,1995-09-18,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Deutsche Babcock (lower market capitalisation).",Wikipedia: DAX
+23,TKA.DE,1999-03-25,INDEX_ADD,index_membership,,DAX30,"Added to DAX; formed by Thyssen/Krupp merger, replaced Thyssen.",Wikipedia: DAX
+24,TKA.DE,2019-09-23,INDEX_REMOVE,index_membership,DAX30,,"Removed from DAX, replaced by MTU Aero Engines. After dataset coverage window.",Wikipedia: DAX
+25,VNA.DE,2015-09-21,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Lanxess (inadequate market capitalisation).",Wikipedia: DAX
+26,WDI.DE,2018-09-24,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing Commerzbank (inadequate market capitalisation).",Wikipedia: DAX
+27,WDI.DE,2020-08-19,INDEX_REMOVE,index_membership,DAX30,,Removed from DAX under new insolvency rule (section 5.1.1); replaced by Delivery Hero. After dataset coverage window.,Wikipedia: DAX
+28,X1COV.DE,2018-03-19,INDEX_ADD,index_membership,,DAX30,"Added to DAX, replacing ProSiebenSat.1 Media (inadequate market capitalisation).",Wikipedia: DAX
+29,X1COV.DE,2024-12-27,INDEX_REMOVE,index_membership,DAX30,,"Removed from DAX (breach of minimum 10% free-float requirement after ADNOC/XRG stake acquisition), replaced by Fresenius Medical Care. After dataset coverage window.",Wikipedia: DAX
+30,DAI.DE,1998-12-21,MERGER,company_name,Daimler-Benz AG,DaimlerChrysler AG,Merger of Daimler-Benz with Chrysler Corporation.,Wikipedia: DAX
+31,DAI.DE,2007-10-04,CORPORATE_ACTION,company_name,DaimlerChrysler AG,Daimler AG,Chrysler demerger (sold to Cerberus Capital); renamed Daimler AG.,Public record
+32,DAI.DE,2022-02-01,NAME_CHANGE,company_name;ticker,Daimler AG / DAI.DE,Mercedes-Benz Group AG / MBG.DE,Renamed and re-ticked following the spin-off of Daimler Truck Holding AG (2021-12-10). This dataset retains the legacy DAI.DE ticker.,Public record
+33,TKA.DE,1999-03-25,MERGER,company_name,Thyssen AG / Fried. Krupp AG Hoesch-Krupp,ThyssenKrupp AG,Merger of Thyssen AG and Fried. Krupp AG Hoesch-Krupp.,Wikipedia: DAX
+34,DPW.DE,2023-06-01,NAME_CHANGE,company_name;ticker,Deutsche Post AG / DPW.DE,DHL Group / DHL.DE,Corporate rebrand to DHL Group; ticker changed. This dataset retains the legacy DPW.DE ticker.,Public record
+35,HEI.DE,2023-09-19,NAME_CHANGE,company_name,HeidelbergCement AG,Heidelberg Materials AG,Corporate rebrand; ticker (HEI.DE) unchanged.,Public record
+36,LIN.DE,2018-10-31,MERGER,company_name,Linde AG,Linde plc,"Merger of equals between Linde AG (Germany) and Praxair Inc. (US); combined entity re-domiciled in Ireland as Linde plc, primary listing moved to NYSE/Nasdaq.",Wikipedia: Linde plc
+37,X1COV.DE,2015-09-01,SPINOFF,ownership,Bayer MaterialScience (Bayer AG subsidiary),Covestro AG (independent),Legal and economic spin-off of Bayer's material science business ahead of IPO.,Public record
+38,X1COV.DE,2015-10-06,IPO,listing_status,Private (Bayer subsidiary),Public (Frankfurt Stock Exchange),Initial public offering on the Frankfurt Stock Exchange.,Public record
+39,X1COV.DE,2025-12-01,MERGER,ownership,Publicly listed (free float),95.1% held by XRG P.J.S.C. / ADNOC International Germany Holding AG,Acquisition by ADNOC's XRG completed; effectively taken private.,Public record
+40,WDI.DE,2020-06-25,CORPORATE_ACTION,listing_status,Active,Insolvency filing,Wirecard AG filed for insolvency at the Munich district court following disclosure of a EUR ~1.9bn accounting fraud (missing trust account balances).,Public record
+41,WDI.DE,2020-08-25,DELISTING,listing_status,Insolvency filing,Insolvency proceedings opened,Insolvency proceedings formally opened by the Munich Local Court.,Public record
+42,FRE.DE,2005-01-31,SPINOFF,related_entity,,Lanxess AG,"Bayer spun off its chemicals business as Lanxess AG (unrelated to Fresenius; included for chemical-sector cross-reference — Lanxess itself briefly a DAX member 2005-2015, not part of this 30-ticker panel).",Wikipedia: DAX

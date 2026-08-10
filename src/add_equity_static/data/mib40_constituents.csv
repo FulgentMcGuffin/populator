@@ -1,0 +1,41 @@
+symbol,security,sector,industry,source
+A2A.MI,A2A SpA,Utilities,Multi-Utility,general_knowledge
+AMP.MI,Amplifon SpA,Health Care,Medical Devices (Hearing),general_knowledge
+ATL.MI,Atlantia SpA,Industrials,Infrastructure/Toll Roads,general_knowledge
+AZM.MI,Azimut Holding,Financials,Asset Management,general_knowledge
+BAMI.MI,Banco BPM,Financials,Banking,general_knowledge
+BGN.MI,Banca Generali,Financials,Banking/Wealth Management,general_knowledge
+BPE.MI,BPER Banca,Financials,Banking,general_knowledge
+BRE.MI,Brembo SpA,Consumer Discretionary,Automotive Parts,general_knowledge
+BZU.MI,Buzzi Unicem,Materials,Building Materials/Cement,general_knowledge
+CNHI.MI,CNH Industrial,Industrials,Agricultural & Construction Machinery,general_knowledge
+CPR.MI,Davide Campari-Milano,Consumer Staples,Beverages,general_knowledge
+DIA.MI,Diasorin SpA,Health Care,Diagnostics,general_knowledge
+ENEL.MI,Enel SpA,Utilities,Electric Utility,general_knowledge
+ENI.MI,Eni SpA,Energy,Integrated Oil & Gas,general_knowledge
+EXO.MI,Exor NV,Financials,Investment Holding Company,general_knowledge
+FBK.MI,FinecoBank,Financials,Banking,general_knowledge
+FCA.MI,Fiat Chrysler Automobiles,Consumer Discretionary,Automobile Manufacturer,general_knowledge
+G.MI,Assicurazioni Generali,Financials,Insurance,general_knowledge
+IG.MI,Italgas SpA,Utilities,Gas Utility,general_knowledge
+ISP.MI,Intesa Sanpaolo,Financials,Banking,general_knowledge
+JUVE.MI,Juventus Football Club,Consumer Discretionary,Sports & Entertainment,general_knowledge
+LDO.MI,Leonardo SpA (formerly Finmeccanica),Industrials,Aerospace & Defense,general_knowledge
+MB.MI,Mediobanca,Financials,Banking/Investment Banking,general_knowledge
+MONC.MI,Moncler SpA,Consumer Discretionary,Apparel & Luxury Goods,general_knowledge
+PIRC.MI,Pirelli & C. SpA,Consumer Discretionary,Tires,general_knowledge
+PRY.MI,Prysmian SpA,Industrials,Cables & Electrical Equipment,general_knowledge
+PST.MI,Poste Italiane,Financials,Postal & Financial Services,general_knowledge
+RACE.MI,Ferrari NV,Consumer Discretionary,Automobile Manufacturer (Luxury),general_knowledge
+REC.MI,Recordati SpA,Health Care,Pharmaceuticals,general_knowledge
+SFER.MI,Salvatore Ferragamo SpA,Consumer Discretionary,Apparel & Luxury Goods,general_knowledge
+SPM.MI,Saipem SpA,Energy,Oil & Gas Equipment & Services,general_knowledge
+SRG.MI,Snam SpA,Utilities,Gas Utility,general_knowledge
+STM.MI,STMicroelectronics,Information Technology,Semiconductors,general_knowledge
+TEN.MI,Tenaris SA,Energy,Oil & Gas Equipment/Steel Pipe,general_knowledge
+TIT.MI,Telecom Italia,Communication Services,Telecommunications,general_knowledge
+TRN.MI,Terna SpA,Utilities,Electric Transmission,general_knowledge
+UBI.MI,UBI Banca (Unione di Banche Italiane),Financials,Banking,general_knowledge
+UCG.MI,UniCredit SpA,Financials,Banking,general_knowledge
+UNI.MI,Unipol Gruppo,Financials,Insurance,general_knowledge
+US.MI,UnipolSai Assicurazioni,Financials,Insurance,general_knowledge

@@ -1,0 +1,47 @@
+symbol,security,sector,industry,source
+AC.PA,Accor,Consumer Discretionary,Hotels & Leisure,wikipedia
+AI.PA,Air Liquide,Materials,Industrial Gases,wikipedia
+AIR.PA,Airbus,Industrials,Aerospace & Defense,wikipedia
+MT.AS,ArcelorMittal,Materials,Steel,wikipedia
+CS.PA,Axa,Financials,Life & Health Insurance,wikipedia
+BNP.PA,BNP Paribas,Financials,Diversified Banks,wikipedia
+EN.PA,Bouygues,Industrials,Construction & Engineering,wikipedia
+BVI.PA,Bureau Veritas,Industrials,Consulting/Inspection & Certification,wikipedia
+CAP.PA,Capgemini,Information Technology,IT Consulting & Other Services,wikipedia
+CA.PA,Carrefour,Consumer Staples,Hypermarkets & Super Centers,wikipedia
+ACA.PA,Credit Agricole,Financials,Regional Banks,wikipedia
+BN.PA,Danone,Consumer Staples,Packaged Foods & Meats,wikipedia
+DSY.PA,Dassault Systemes,Information Technology,Application Software,wikipedia
+EDEN.PA,Edenred,Industrials,Transaction Processing Services,wikipedia
+ENGI.PA,Engie,Utilities,Gas Utilities,wikipedia
+EL.PA,EssilorLuxottica,Health Care,Apparel/Accessories & Luxury Goods,wikipedia
+ERF.PA,Eurofins Scientific,Health Care,Biotechnology/Life Sciences,wikipedia
+RMS.PA,Hermes,Consumer Discretionary,Apparel/Accessories & Luxury Goods,wikipedia
+KER.PA,Kering,Consumer Discretionary,Apparel/Accessories & Luxury Goods,wikipedia
+OR.PA,L'Oreal,Consumer Staples,Personal Products,wikipedia
+LR.PA,Legrand,Industrials,Electrical Components & Equipment,wikipedia
+MC.PA,LVMH,Consumer Discretionary,Apparel/Accessories & Luxury Goods,wikipedia
+ML.PA,Michelin,Industrials,Tires & Rubber,wikipedia
+ORA.PA,Orange,Communication Services,Integrated Telecommunication Services,wikipedia
+ATO.PA,Atos SE,Information Technology,IT Consulting & Other Services,general_knowledge - not in current CAC40 list; historical constituent (later delisted 2025 amid financial restructuring)
+FP.PA,TotalEnergies (formerly Total SA),Energy,Integrated Oil & Gas,general_knowledge - legacy ticker before 2021 rename to TTE.PA
+RI.PA,Pernod Ricard,Consumer Staples,Distillers & Vintners,wikipedia
+PUB.PA,Publicis,Communication Services,Advertising,wikipedia
+RNO.PA,Renault,Consumer Discretionary,Automobile Manufacturers,wikipedia
+SAF.PA,Safran,Industrials,Aerospace & Defense,wikipedia
+SGO.PA,Saint-Gobain,Industrials,Building Products,wikipedia
+SAN.PA,Sanofi,Health Care,Pharmaceuticals,wikipedia
+SU.PA,Schneider Electric,Industrials,Electrical Components & Equipment,wikipedia
+GLE.PA,Societe Generale,Financials,Diversified Banks,wikipedia
+STM.PA,STMicroelectronics,Information Technology,Semiconductors,wikipedia
+HO.PA,Thales,Industrials,Aerospace & Defense,wikipedia
+URW.AS,Unibail-Rodamco-Westfield,Real Estate,Retail REITs,wikipedia
+VIE.PA,Veolia,Industrials,Multi-Utilities,wikipedia
+DG.PA,Vinci,Industrials,Construction & Engineering,wikipedia
+FTI.PA,Technip (later TechnipFMC),Energy,Oil & Gas Equipment & Services,general_knowledge - not in current (2024) CAC40 list; historical constituent
+LHN.VX,Lafarge (merged into LafargeHolcim 2015),Materials,Construction Materials/Cement,general_knowledge - not in current CAC40 list; historical constituent
+SOLB.BR,Solvay,Materials,Specialty Chemicals,general_knowledge - not in current CAC40 list; historical constituent
+FR.PA,Valeo,Consumer Discretionary,Automotive Parts & Equipment,general_knowledge - not in current CAC40 list; historical constituent
+SW.PA,Sodexo,Consumer Discretionary,Restaurants/Food Services,general_knowledge - not in current CAC40 list; historical constituent
+UG.PA,Peugeot SA (merged into Stellantis 2021),Consumer Discretionary,Automobile Manufacturers,general_knowledge - not in current CAC40 list; historical constituent
+VIV.PA,Vivendi,Communication Services,Media & Entertainment Conglomerate,general_knowledge - not in current CAC40 list; historical constituent

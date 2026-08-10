@@ -1,0 +1,51 @@
+symbol,hk_code,security,sector,industry,source
+X0001.HK,0001,CK Hutchison Holdings (formerly Cheung Kong Holdings pre-2015),Industrials,Diversified Conglomerate,general_knowledge
+X0002.HK,0002,CLP Holdings,Utilities,Electric Utility,general_knowledge
+X0003.HK,0003,Hong Kong and China Gas Company (Towngas),Utilities,Gas Utility,general_knowledge
+X0005.HK,0005,HSBC Holdings,Financials,Banking,general_knowledge
+X0006.HK,0006,Power Assets Holdings,Utilities,Electric Utility,general_knowledge
+X0011.HK,0011,Hang Seng Bank,Financials,Banking,general_knowledge
+X0012.HK,0012,Henderson Land Development,Real Estate,Property Developer,general_knowledge
+X0016.HK,0016,Sun Hung Kai Properties,Real Estate,Property Developer,general_knowledge
+X0017.HK,0017,New World Development,Real Estate,Property Developer,general_knowledge
+X0019.HK,0019,Swire Pacific (A),Industrials,Diversified Conglomerate/Real Estate,general_knowledge
+X0027.HK,0027,Galaxy Entertainment Group,Consumer Discretionary,Casinos & Gaming,general_knowledge
+X0066.HK,0066,MTR Corporation,Industrials,Railroads/Transportation,general_knowledge
+X0083.HK,0083,Sino Land Company,Real Estate,Property Developer,general_knowledge
+X0101.HK,0101,Hang Lung Properties,Real Estate,Property Developer,general_knowledge
+X0151.HK,0151,Want Want China Holdings,Consumer Staples,Food Products,general_knowledge
+X0175.HK,0175,Geely Automobile Holdings,Consumer Discretionary,Automobile Manufacturer,general_knowledge
+X0267.HK,0267,CITIC Limited,Financials,Diversified Conglomerate/Investment Holding,general_knowledge
+X0288.HK,0288,WH Group (formerly Shuanghui International),Consumer Staples,Meat Products,general_knowledge
+X0386.HK,0386,China Petroleum & Chemical Corp (Sinopec),Energy,Oil & Gas Refining,general_knowledge
+X0388.HK,0388,Hong Kong Exchanges and Clearing (HKEX),Financials,Financial Exchanges,general_knowledge
+X0688.HK,0688,China Overseas Land & Investment,Real Estate,Property Developer,general_knowledge
+X0700.HK,0700,Tencent Holdings,Communication Services,Internet/Media & Gaming,general_knowledge
+X0762.HK,0762,China Unicom (Hong Kong),Communication Services,Telecommunications,general_knowledge
+X0823.HK,0823,Link Real Estate Investment Trust,Real Estate,Diversified REIT,general_knowledge
+X0836.HK,0836,China Resources Power Holdings,Utilities,Electric Utility,general_knowledge
+X0857.HK,0857,PetroChina Company,Energy,Oil & Gas Exploration & Production,general_knowledge
+X0883.HK,0883,CNOOC Limited,Energy,Oil & Gas Exploration & Production,general_knowledge
+X0939.HK,0939,China Construction Bank,Financials,Banking,general_knowledge
+X0941.HK,0941,China Mobile,Communication Services,Telecommunications,general_knowledge
+X1038.HK,1038,CK Infrastructure Holdings,Utilities,Diversified Infrastructure,general_knowledge
+X1044.HK,1044,Hengan International Group,Consumer Staples,Personal Care Products,general_knowledge
+X1088.HK,1088,China Shenhua Energy,Energy,Coal Mining,general_knowledge
+X1093.HK,1093,CSPC Pharmaceutical Group,Health Care,Pharmaceuticals,general_knowledge
+X1109.HK,1109,China Resources Land,Real Estate,Property Developer,general_knowledge
+X1113.HK,1113,CK Asset Holdings (post-2015 restructuring of Cheung Kong),Real Estate,Property Developer,general_knowledge
+X1177.HK,1177,Sino Biopharmaceutical,Health Care,Pharmaceuticals,general_knowledge
+X1299.HK,1299,AIA Group,Financials,Insurance,general_knowledge
+X1398.HK,1398,Industrial and Commercial Bank of China (ICBC),Financials,Banking,general_knowledge
+X1928.HK,1928,Sands China Ltd,Consumer Discretionary,Casinos & Gaming,general_knowledge
+X1997.HK,1997,Wharf Holdings / Wharf Real Estate Investment Company,Real Estate,Property Developer,general_knowledge
+X2007.HK,2007,Country Garden Holdings,Real Estate,Property Developer,general_knowledge
+X2018.HK,2018,AAC Technologies Holdings,Information Technology,Electronic Components,general_knowledge
+X2313.HK,2313,Shenzhou International Group,Consumer Discretionary,Apparel Manufacturing,general_knowledge
+X2318.HK,2318,Ping An Insurance Group,Financials,Insurance,general_knowledge
+X2319.HK,2319,China Mengniu Dairy,Consumer Staples,Dairy Products,general_knowledge
+X2382.HK,2382,Sunny Optical Technology,Information Technology,Optical Components,general_knowledge
+X2388.HK,2388,BOC Hong Kong Holdings,Financials,Banking,general_knowledge
+X2628.HK,2628,China Life Insurance Company,Financials,Insurance,general_knowledge
+X3328.HK,3328,Bank of Communications,Financials,Banking,general_knowledge
+X3988.HK,3988,Bank of China,Financials,Banking,general_knowledge
