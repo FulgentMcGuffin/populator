@@ -56,6 +56,11 @@ def skip_missing() -> bool:
     """Skip directories that do not exist instead of raising."""
 
 
+def stem_suffixes() -> dict[str, str]:
+    """Optional file-stem suffix filter keyed by table name."""
+    return {}
+
+
 def directories_loaded(
     source_class: type[Any],
     should_load_directories: bool,
@@ -66,6 +71,7 @@ def directories_loaded(
     file_transform: FileTransform | None,
     overwrite_if_exists: bool,
     skip_missing: bool,
+    stem_suffixes: dict[str, str],
 ) -> dict[str, bool]:
     """Load each configured directory into its table when requested."""
     if not should_load_directories:
@@ -80,6 +86,7 @@ def directories_loaded(
         transform=file_transform,
         overwrite_if_exists=overwrite_if_exists,
         skip_missing=skip_missing,
+        stem_suffixes=stem_suffixes,
     )
 
 

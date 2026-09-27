@@ -125,6 +125,7 @@ def load_directory_into_table(
     overwrite_if_exists: bool = True,
     progress: bool = False,
     csv_infer_schema_length: int | None = None,
+    stem_suffix: str | None = None,
 ) -> bool:
     """Load all matching files from *directory* into a single *table_name*."""
     df = load_files_from_dir(
@@ -134,6 +135,7 @@ def load_directory_into_table(
         transform=transform,
         progress=progress,
         csv_infer_schema_length=csv_infer_schema_length,
+        stem_suffix=stem_suffix,
     )
     if progress:
         from tqdm import tqdm
@@ -156,6 +158,7 @@ def load_directories_into_tables(
     skip_missing: bool = True,
     progress: bool = False,
     csv_infer_schema_length: int | None = None,
+    stem_suffixes: dict[str, str] | None = None,
 ) -> dict[str, bool]:
     """Load each directory into its named table using a writable backend."""
     results: dict[str, bool] = {}
@@ -195,6 +198,7 @@ def load_directories_into_tables(
                 overwrite_if_exists=overwrite_if_exists,
                 progress=progress,
                 csv_infer_schema_length=csv_infer_schema_length,
+                stem_suffix=(stem_suffixes or {}).get(table_name),
             )
             if progress:
                 status = "created" if results[table_name] else "unchanged"

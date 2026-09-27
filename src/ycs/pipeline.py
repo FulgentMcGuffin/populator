@@ -83,6 +83,6 @@ def run_populate_pipeline(
             "starting_month": DEFAULT_START_MONTH,
             "starting_day": DEFAULT_START_DAY,
             "run_async": True,
-            "overwrite_existing": False,
+            "overwrite_existing": True,
         },
     )

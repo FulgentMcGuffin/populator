@@ -57,6 +57,46 @@ def test_load_files_from_dir_concatenates_with_source_column(data_dir: Path) -> 
     assert set(df["source"].to_list()) == {"eur", "usd", "gbp"}
 
 
+def test_sqlite_full_db_path_does_not_double_sqlitedb_suffix(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    db_file = tmp_path / "ycs_data.sqlitedb"
+    monkeypatch.setenv("SQLITEDB_PATH", str(db_file))
+
+    assert Path(SQLiteSource.get_full_db_path()) == db_file
+    assert Path(SQLiteSource.get_full_db_path("other.sqlitedb")) == (
+        tmp_path / "other.sqlitedb"
+    )
+    assert Path(SQLiteSource.get_full_db_path("other.db")) == tmp_path / "other.db"
+    assert Path(SQLiteSource.get_full_db_path("other")) == tmp_path / "other.db"
+
+
+def test_load_files_from_dir_drops_columns_that_are_entirely_null(tmp_path: Path) -> None:
+    pl.DataFrame(
+        {
+            "date": ["2024-01-01", "2024-01-02"],
+            "value": [1.0, 2.0],
+            "unused": pl.Series([None, None], dtype=pl.Float64),
+            "sparse": pl.Series([None, None], dtype=pl.Null),
+        }
+    ).write_parquet(tmp_path / "a.parquet")
+    pl.DataFrame(
+        {
+            "date": ["2024-01-03"],
+            "value": [3.0],
+            "unused": pl.Series([None], dtype=pl.Float64),
+            "sparse": pl.Series([4.5], dtype=pl.Float64),
+        }
+    ).write_parquet(tmp_path / "b.parquet")
+
+    df = load_files_from_dir(tmp_path, extensions=frozenset({".parquet"}))
+
+    assert df.columns == ["date", "value", "sparse"]
+    assert df.schema["sparse"] == pl.Float64
+    assert df["sparse"].to_list() == [None, None, 4.5]
+
+
 @pytest.mark.parametrize("source_class", [SQLiteSource, DuckDBSource])
 def test_create_table_from_polars_with_reserved_column_name(
     source_class: type,
