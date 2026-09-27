@@ -31,6 +31,11 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 load_dotenv(Path(__file__).resolve().parents[2] / ".secrets", override=False)
 
 
+def _has_sqlite_suffix(name: str) -> bool:
+    """True when *name* already ends with ``.sqlitedb`` or ``.db``."""
+    return name.endswith((".sqlitedb", ".db"))
+
+
 def _quote_ident(name: str) -> str:
     """Quote an SQL identifier for SQLite (handles reserved words like ``Index``)."""
     escaped = name.replace('"', '""')
@@ -50,9 +55,9 @@ def _resolve_default_db_path() -> tuple[str, str]:
     if raw is None:
         raise ValueError("SQLITEDB_PATH environment variable is not set")
     name = os.path.basename(raw)
-    if not name.endswith(".db"):
+    if not _has_sqlite_suffix(name):
         raise ValueError(
-            f"SQLITEDB_PATH environment variable must end with .db but found {name}"
+            f"SQLITEDB_PATH environment variable must end with .sqlitedb or .db but found {name}"
         )
     return os.path.dirname(raw), name
 
@@ -111,10 +116,8 @@ class SQLiteSource(DataSink):
         default_dir, default_name = _resolve_default_db_path()
         if db_name is None:
             db_name = default_name
-        return os.path.join(
-            default_dir,
-            f"{db_name}.db" if not db_name.endswith(".db") else db_name,
-        )
+        filename = db_name if _has_sqlite_suffix(db_name) else f"{db_name}.db"
+        return os.path.join(default_dir, filename)
 
     # ------------------------------------------------------------------
     # Connection management

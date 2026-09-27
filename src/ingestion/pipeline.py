@@ -38,6 +38,7 @@ def ingestion_overrides(
     file_transform: FileTransform | None = None,
     overwrite_if_exists: bool = True,
     skip_missing: bool = True,
+    stem_suffixes: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build Hamilton override inputs for the ingestion DAG nodes."""
     return {
@@ -52,6 +53,7 @@ def ingestion_overrides(
         "file_transform": file_transform,
         "overwrite_if_exists": overwrite_if_exists,
         "skip_missing": skip_missing,
+        "stem_suffixes": stem_suffixes or {},
     }
 
 
@@ -66,6 +68,7 @@ def run_load_directories_into_tables(
     overwrite_if_exists: bool = True,
     skip_missing: bool = True,
     should_load: bool = True,
+    stem_suffixes: dict[str, str] | None = None,
 ) -> dict[str, bool]:
     """Run the ingestion Hamilton DAG to load directories into database tables."""
     dr = build_driver()
@@ -81,6 +84,7 @@ def run_load_directories_into_tables(
             file_transform=file_transform,
             overwrite_if_exists=overwrite_if_exists,
             skip_missing=skip_missing,
+            stem_suffixes=stem_suffixes,
         ),
     )
     return result["load_summary"]
